@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.env
+
+# Node.js / Frontend
+node_modules/
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+RestoredSource/frontend/dist/
+RestoredSource/frontend/node_modules/
+
+# Build / Distribution
+dist/
+build/
+*.spec
+!ClassPush.spec
+
+# Installer
+Output/
+*.iss
+!setup.iss
+ClassPush_Setup.exe
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.trae/
+
+# Logs
+logs/
+*.log
+
+# Configuration & Secrets (IMPORTANT)
+config.json
+config.ini
+secrets.yaml
+.ClassPush/
+
+# OS specific
+.DS_Store
+Thumbs.db
