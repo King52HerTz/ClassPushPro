@@ -158,12 +158,12 @@ def get_entry_point():
         # 检查 spec 中配置的 frontend/dist 路径
         frozen_path = os.path.join(base_dir, "frontend", "dist", "index.html")
         if os.path.exists(frozen_path):
-            return frozen_path
+            return os.path.abspath(frozen_path) # 必须返回绝对路径，pywebview 才能启动内置服务器
             
         # 备用路径检查
         frozen_path_alt = os.path.join(base_dir, "RestoredSource", "frontend", "dist", "index.html")
         if os.path.exists(frozen_path_alt):
-            return frozen_path_alt
+            return os.path.abspath(frozen_path_alt)
 
     # 3. 源码运行模式：查找构建好的静态文件
     # 优先查找开发环境路径
@@ -236,10 +236,29 @@ if __name__ == '__main__':
         window_title = 'ClassPush (Restored)'
         window = webview.create_window(window_title, html=html_content)
     else:
-        # pywebview 可以智能识别 url 是本地路径还是 http 链接
-        # 注意：不要在 create_window 中直接传 icon，某些环境下会导致崩溃或显示问题
-        # 改为仅使用 _try_set_windows_icon 后置设置
-        window = webview.create_window(window_title, url=entry, width=1024, height=768, resizable=True)
+        # 修复白屏方案 1：强制使用 pywebview 内置 HTTP 服务器
+        # 如果 entry 是本地文件路径，pywebview 会自动启动本地服务器托管它
+        # 这样可以避开端口冲突，解决 Win11 权限问题，且不需要外部 web server
+        logger.info(f"Loading UI from: {entry}")
+        
+        # 修复白屏方案 2：检测并提示安装 WebView2
+        # 在创建窗口前，pywebview 会尝试初始化，如果失败通常是缺组件
+        try:
+            window = webview.create_window(window_title, url=entry, width=1024, height=768, resizable=True)
+        except Exception as e:
+            logger.error(f"WebView2 init failed: {e}")
+            # 尝试调用系统弹窗提示 (简单的 ctypes 弹窗)
+            try:
+                import ctypes
+                ctypes.windll.user32.MessageBoxW(0, 
+                    "启动失败：检测到您的系统缺少 WebView2 运行组件。\n\n请点击确定前往微软官网下载安装，安装后即可正常使用。", 
+                    "缺少运行环境", 0x10 | 0x1) # MB_ICONHAND | MB_OKCANCEL
+                # 打开下载页面
+                import webbrowser
+                webbrowser.open("https://go.microsoft.com/fwlink/p/?LinkId=2124703")
+            except:
+                pass
+            sys.exit(1)
         
     # window.expose(api) # expose is not needed when js_api is used in create_window
     window.expose(
