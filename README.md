@@ -1,4 +1,4 @@
-# ClassPush - 湖南工学院(Hnit)专属课程推送助手 🎓
+# ClassPush - 湖工(Hnit)专属课程推送助手 🎓
 
 > 一个专为 Hnit 学子打造的桌面端课程推送工具，基于 Python + React + PyWebView 开发，对接强智教务系统，让你的课表触手可及。
 
