@@ -57,10 +57,10 @@ class ConfigManager:
             
             # 解密敏感字段
             self.config_data = {
-                "username": self._decrypt(encrypted_data.get("username", "")),
-                "password": self._decrypt(encrypted_data.get("password", "")),
-                "app_token": self._decrypt(encrypted_data.get("app_token", "")),
-                "uid": self._decrypt(encrypted_data.get("uid", "")),
+                "username": self._decrypt(encrypted_data.get("username", "")).strip(),
+                "password": self._decrypt(encrypted_data.get("password", "")).strip(),
+                "app_token": self._decrypt(encrypted_data.get("app_token", "")).strip(),
+                "uid": self._decrypt(encrypted_data.get("uid", "")).strip(),
                 "push_time": encrypted_data.get("push_time", "07:00"),
                 "auto_start": encrypted_data.get("auto_start", False),
                 "last_push_success_time": encrypted_data.get("last_push_success_time", ""),
@@ -91,6 +91,17 @@ class ConfigManager:
         jw_cached_token = self.config_data.get("jw_cached_token", "") if keep_jw_cache else ""
         jw_cached_time = self.config_data.get("jw_cached_time", "") if keep_jw_cache else ""
         jw_cached_cookies = self.config_data.get("jw_cached_cookies", {}) if keep_jw_cache else {}
+
+        # 强制兜底：如果前端传了空 Token，且配置文件中没有有效 Token，则自动补上默认的那个真实 Token
+        # 这解决了前端界面隐藏 Token 后，保存时把空字符串传过来覆盖掉正确 Token 的问题
+        if not app_token:
+            # 先尝试用旧配置里的 Token
+            current_token = self.config_data.get("app_token", "")
+            if current_token:
+                app_token = current_token
+            else:
+                # 如果旧配置也没有，就用默认的硬编码 Token
+                app_token = "AT_Xmbnkx7s8q8SvUiNMtk24FlDnXCKiT9e"
 
         encrypted_data = {
             "username": self._encrypt(username),
@@ -172,6 +183,16 @@ class ConfigManager:
             return False
 
     def get(self, key, default=None):
+        # 1. 优先尝试从环境变量获取 (适配 GitHub Actions)
+        # 环境变量命名规则: CP_大写KEY，例如 CP_USERNAME, CP_PASSWORD
+        env_key = f"CP_{key.upper()}"
+        env_val = os.getenv(env_key)
+        if env_val:
+            # 只有 username, password, app_token, uid 这几个核心字段支持从环境变量读取
+            if key in ["username", "password", "app_token", "uid", "push_time"]:
+                return env_val
+        
+        # 2. 回退到读取本地配置
         return self.config_data.get(key, default)
 
     def update_jw_cached_token(self, username, token, time_str, cookies_dict=None):

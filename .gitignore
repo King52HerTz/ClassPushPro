@@ -47,3 +47,8 @@ secrets.yaml
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Private Docs
+DEPLOYMENT_ANALYSIS.md
+OPTIMIZATION.md
+CONFIG_SETUP.md

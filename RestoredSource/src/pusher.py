@@ -108,10 +108,23 @@ class Pusher:
 
                 try:
                     data = resp.json()
+                    # 记录详细响应以便调试
+                    logger.info(f"WxPusher响应: {json.dumps(data, ensure_ascii=False)}")
                 except Exception:
                     last_error_msg = "返回解析失败"
                 else:
                     if data.get("code") == 1000:
+                        # 检查 data 里的具体状态
+                        invalid_list = []
+                        for item in data.get("data", []):
+                            if item.get("code") != 1000:
+                                invalid_list.append(f"{item.get('uid')}: {item.get('status')}")
+                        
+                        if invalid_list:
+                            err_detail = "; ".join(invalid_list)
+                            logger.warning(f"部分UID推送失败: {err_detail}")
+                            return False, f"部分失败: {err_detail}"
+                            
                         return True, "发送成功"
                     last_error_msg = str(data.get("msg") or "未知错误")
 
