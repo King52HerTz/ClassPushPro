@@ -39,23 +39,28 @@ GitHub 非常安全，它提供了一个“保险箱”功能 (Secrets)，你的
 | :--- | :--- | :--- |
 | `CP_USERNAME` | `20210001` | 你的教务系统学号 |
 | `CP_PASSWORD` | `123456` | 你的教务系统密码 |
-| `CP_APP_TOKEN` | `AT_xxxxxx` | WxPusher AppToken (如果不知道填什么，可以用默认值：`AT_Xmbnkx7s8q8SvUiNMtk24FlDnXCKiT9e`) |
+| `CP_APP_TOKEN` | `AT_xxxxxx` | 你的 WxPusher AppToken (需要你自己申请，见下方说明) |
 | `CP_UID` | `UID_xxxxxx` | 你的 WxPusher UID (见下方说明) |
 
 > **提示**：一定要填对，如果密码错了，后面运行会失败哦。
 > ![4 个变量都要添加 如图所示](docs/images/p6.png)
 
-### 如何获取 CP_UID？
+### 如何获取 AppToken 和 UID？
 
 这是最重要的推送凭证！请按照以下步骤获取：
 
-1.  下载并安装 **WxPusher** App。
-2.  使用微信扫描下方二维码，关注我们的推送服务：
-    
-    ![WxPusher QRCode](https://wxpusher.zjiecode.com/api/qrcode/uOkIOIyXg2AZRnwPRIVN78NLBXQaOxIlWs3QsRCoj4kZkyIidI7sFFrEGriCoftn.jpg)
-    
-3.  关注后，打开 WxPusher 公众号 ，会自动弹出一条消息。
-4.  复制那个以 `UID_` 开头的字符串，填入上面的 `CP_UID` 中。
+1.  **注册应用 (获取 AppToken)**：
+    *   访问 [WxPusher 官网](https://wxpusher.zjiecode.com/admin/) 并登录。
+    *   点击左侧“应用管理” -> “创建应用”。
+    *   应用名称随便填（例如：`我的课表`），其他随便填，点击创建。
+    *   在弹出的窗口中，你会看到 `AppToken`，**立刻复制它**并填入上面的 `CP_APP_TOKEN` 中。（注意：AppToken 只显示一次，忘了就要重置）
+
+2.  **关注应用 (获取 UID)**：
+    *   在应用列表页，找到你刚才创建的应用，点击“查看”。
+    *   找到 **“关注二维码”**，用微信扫码关注 **你自己创建的应用**。
+    *   关注后，点击微信里收到的“用户UID”消息，或者在后台“用户列表”里查看。
+    *   复制你的 `UID_` 开头的字符串，填入上面的 `CP_UID` 中。
+
 
 ---
 
