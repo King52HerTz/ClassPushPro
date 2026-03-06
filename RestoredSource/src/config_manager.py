@@ -100,8 +100,8 @@ class ConfigManager:
             if current_token:
                 app_token = current_token
             else:
-                # 如果旧配置也没有，就用默认的硬编码 Token
-                app_token = "AT_Xmbnkx7s8q8SvUiNMtk24FlDnXCKiT9e"
+                # 如果旧配置也没有，就用默认的硬编码 Token Token去平台获取
+                app_token = ""
 
         encrypted_data = {
             "username": self._encrypt(username),
