@@ -118,6 +118,23 @@ GitHub 非常安全，它提供了一个“保险箱”功能 (Secrets)，你的
         *   写成：`cron: '30 22 * * *'`
 6.  修改完成后，点击右上角的绿色按钮 **Commit changes** 保存即可。
 
+### 进阶：如何自定义推送文案？
+
+如果你想让推送消息更个性化，比如把“小主”改成“宝贝”，或者加点emoji：
+
+1.  同样在 **Code** 选项卡，进入 `src` 文件夹。
+2.  找到并点击 `run_job.py` 文件。
+3.  点击右上角的 ✏️ (铅笔图标) 编辑。
+4.  按 `Ctrl+F` 搜索 `小主`，你会找到类似这样的代码：
+    ```python
+    summary_title = f"{offline_text}{delayed_text}小主，{day_label}有 {course_count} 节课，记得按时上课哟 🍬"
+    ```
+5.  直接修改引号里的文字即可！比如改成：
+    ```python
+    summary_title = f"起床啦！{day_label}有 {course_count} 节课，快去教室占座！🔥"
+    ```
+6.  修改完成后，点击右上角的绿色按钮 **Commit changes** 保存即可。
+
 ---
 
 🎉 **大功告成！**
