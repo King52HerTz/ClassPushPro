@@ -102,7 +102,31 @@ GitHub 非常安全，它提供了一个“保险箱”功能 (Secrets)，你的
     *   ❌ **红色叉号**：失败。可能是账号密码填错了，请回到第二步检查 Secrets。
     > ![运行成功结果](docs/images/p11.png)
 
-### 进阶：如何自定义推送时间？
+
+## 第四步：开启“断网求生”模式 (强烈推荐) 🛡️
+
+**这是云端版独有的黑科技！**
+
+即使学校教务系统崩了、由于网络波动无法访问，只要你上传了本地的缓存文件，GitHub 依然能根据缓存算出今天的课表并推送给你。
+
+1.  **准备缓存文件**：
+    *   在你自己的电脑上运行一次 ClassPush 软件，确保能成功看到课表。
+    *   找到配置文件 `config.json`。
+    *   它通常在：`C:\Users\你的用户名\.ClassPush\config.json`。
+
+2.  **上传到 GitHub**：
+    *   回到你的 GitHub 仓库首页。
+    *   点击文件列表右上角的 **Add file** 按钮 -> 选择 **Upload files**。
+    *   把你的 `config.json` 文件拖进去。
+    *   点击绿色的 **Commit changes** 按钮。
+
+> **⚠️ 高能预警**：
+> `config.json` 里包含加密后的账号密码。为了安全，**请务必确保你的 GitHub 仓库是 Private (私有的)**，不要分享给别人！
+> (在 Settings -> General -> Danger Zone -> Change repository visibility 中可以设置为 Private)
+
+---
+
+## 进阶：如何自定义推送时间？
 
 如果你觉得早上 7 点太早，或者晚上 8 点太晚，完全可以自己改时间！
 
