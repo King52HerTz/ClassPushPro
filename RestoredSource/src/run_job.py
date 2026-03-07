@@ -136,8 +136,33 @@ def run_push_task(force=False, source="auto"):
         if cached_data:
             courses = cached_data.get("courses", [])
             current_week = cached_data.get("current_week", "1")
+            
+            # 智能周次推算逻辑
+            # 如果缓存中有上次更新时间，尝试推算当前周次
+            last_update_str = config.get("jw_cached_time")
+            if last_update_str:
+                try:
+                    last_dt = datetime.datetime.strptime(last_update_str, "%Y-%m-%d %H:%M:%S")
+                    # 计算两个日期相差的天数
+                    days_diff = (now - last_dt).days
+                    # 计算相差的周数 (向下取整)
+                    weeks_diff = days_diff // 7
+                    
+                    if weeks_diff > 0:
+                        old_week = int(current_week)
+                        new_week = old_week + weeks_diff
+                        logger.info(f"离线模式: 根据时间差({days_diff}天)自动推算周次: {old_week} -> {new_week}")
+                        current_week = str(new_week)
+                except Exception as e:
+                    logger.warning(f"离线周次推算失败: {e}")
+
+            # 特殊处理：如果是学校没有第一周，默认修正为2
+            # if current_week == "1":
+            #      logger.info("检测到周次为1，根据学校特性修正为2")
+            #      current_week = "2"
+
             is_offline_mode = True
-            logger.info("已切换至离线模式，使用本地缓存课表")
+            logger.info(f"已切换至离线模式，使用本地缓存课表 (当前周次: {current_week})")
         else:
             logger.error("在线抓取失败且无本地缓存，无法推送")
             return False, "获取课表失败"
@@ -159,6 +184,18 @@ def run_push_task(force=False, source="auto"):
     target_xqmc = WEEKDAYS[target_weekday]
     target_date_str = target_date.strftime("%m月%d日")
     
+    # 智能跨周逻辑：如果目标日期是下一周（周一），且当前周次未更新，需要 +1
+    # 场景：周日(第1周)推送周一(第2周)的课
+    # 判断标准：target_date 的 ISO 周数 > now 的 ISO 周数
+    # 或者简单点：如果 target_weekday 是 0 (周一) 且 now 是周日，说明跨周了
+    if target_weekday == 0 and now.weekday() == 6:
+        try:
+            old_week = int(current_week)
+            current_week = str(old_week + 1)
+            logger.info(f"检测到跨周推送 (周日->周一)，周次自动+1: {old_week} -> {current_week}")
+        except:
+            pass
+
     # current_week 已在上面获取 (在线或缓存)
     logger.info(f"当前周次: {current_week}，目标日期: {target_date_str} ({target_xqmc})")
     
@@ -191,15 +228,28 @@ def _filter_courses(all_courses, target_date, current_week):
     target_xqmc = WEEKDAYS[target_weekday]
     
     filtered = []
+    logger.info(f"开始筛选课程: 目标星期={target_xqmc}, 目标周次={current_week}")
+    
     for c in all_courses:
+        # 调试日志：打印每节课的关键信息
+        c_name = c.get("courseName", "未知课程")
+        c_xqmc = c.get("xqmc", "")
+        c_weeks = c.get("classWeekDetails", "")
+        
         if c.get("xqmc") != target_xqmc:
+            # logger.debug(f"跳过课程[{c_name}]: 星期不匹配 ({c_xqmc} != {target_xqmc})")
             continue
+            
         week_details = c.get("classWeekDetails", "")
         if week_details:
             weeks = week_details.split(",")
             if str(current_week) not in weeks:
+                logger.info(f"跳过课程[{c_name}]: 周次不匹配 (当前第{current_week}周, 该课{c_weeks}周)")
                 continue
+        
+        logger.info(f"命中课程: {c_name} (地点:{c.get('location')}, 节次:{c.get('classTime')})")
         filtered.append(c)
+    
     return filtered
 
 def _are_all_courses_finished(courses):
@@ -324,8 +374,23 @@ def _generate_push_content(courses, date_str, weekday_str, is_delayed=False, is_
         
         courses.sort(key=lambda x: x.get("classTime", ""))
         
+        # 时间映射表
+        time_map = {
+            "1-2": "08:30-10:05",
+            "3-4": "10:25-12:00",
+            "5-6": "14:00-15:35",
+            "7-8": "15:55-17:30",
+            "9-10": "19:00-20:35"
+        }
+
         for course in courses:
-            time_slot = course.get('classTime', '')
+            raw_time_slot = course.get('classTime', '')
+            # 移除可能存在的“节”字
+            clean_time_slot = raw_time_slot.replace('节', '')
+            
+            # 获取具体时间段，如果没有匹配到则显示原节次
+            display_time = time_map.get(clean_time_slot, f"{clean_time_slot}节")
+            
             html += f"""
             <div class="course-card">
                 <div class="course-name">📖 {course['courseName']}</div>
@@ -333,7 +398,7 @@ def _generate_push_content(courses, date_str, weekday_str, is_delayed=False, is_
                     <span class="icon">📍</span> {course['location']}
                 </div>
                 <div class="course-info">
-                    <span class="icon">⏰</span> {time_slot}节
+                    <span class="icon">⏰</span> {display_time}
                 </div>
                 <div class="course-info">
                     <span class="icon">🧑‍🏫</span> {course['teacherName']}
