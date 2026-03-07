@@ -127,7 +127,7 @@ const App = () => {
   const renderContent = () => {
     switch (selectedKey) {
       case 'dashboard':
-        return <DashboardPage />;
+        return <DashboardPage onNavigate={(key) => setSelectedKey(key)} />;
       case 'preview':
         return <CoursePreviewPage />;
       case 'settings':
