@@ -37,6 +37,8 @@ jobs:
         CP_PASSWORD: ${{ secrets.CP_PASSWORD }}
         CP_APP_TOKEN: ${{ secrets.CP_APP_TOKEN }}
         CP_UID: ${{ secrets.CP_UID }}
+        # 强制指定推送时间为 07:00，确保脚本识别为“早安推送”，只推今天的课
+        CP_PUSH_TIME: "07:00"
       run: |
         # 运行无头模式脚本
         # 适配不同的目录结构 (RestoredSource 或 src)
