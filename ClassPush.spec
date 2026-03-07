@@ -25,7 +25,7 @@ a = Analysis(
     ],
     excludes=[
         # 显式排除云端运行器，防止被意外打包进去 (虽然打包进去也没害处，只是占空间)
-        'action_runner', 
+        # 'action_runner', 
     ],
     hiddenimports=[
         'win32timezone',
@@ -45,7 +45,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    # excludes=[],  <-- 这一行是重复的，需要删除
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
