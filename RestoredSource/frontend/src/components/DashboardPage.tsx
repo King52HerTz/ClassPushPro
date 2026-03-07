@@ -13,6 +13,10 @@ interface DashboardPageProps {
     onNavigate?: (key: string) => void;
 }
 
+import { APP_VERSION, VERSION_JSON_URL } from '../constants';
+
+import { compareVersions, cleanVersion } from '../utils';
+
 const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     const [loading, setLoading] = useState(false);
     const [config, setConfig] = useState<Partial<AppConfig>>({});
@@ -31,6 +35,54 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     useEffect(() => {
         const loadData = async () => {
             try {
+                // 0. 检查更新 (轻量级)
+                try {
+                    const versionRes = await fetch(VERSION_JSON_URL);
+                    const versionData = await versionRes.json();
+                    
+                    // 当前版本 (从常量获取)
+                    const currentVersion = APP_VERSION;
+                    
+                    // 使用 compareVersions 进行版本号大小比较
+                    // 如果远程版本 > 本地版本
+                    if (compareVersions(versionData.version, currentVersion) > 0) {
+                        
+                        // 检查用户是否已在本次会话中选择了忽略该版本
+                        const ignoredVersion = sessionStorage.getItem('ignored_update_version');
+                        if (ignoredVersion === versionData.version) {
+                            return; // 用户已忽略此版本，不再弹窗
+                        }
+
+                        Modal.confirm({
+                            title: `🎉 发现新版本 v${cleanVersion(versionData.version)}`,
+                            icon: <ThunderboltFilled style={{ color: '#1890ff' }} />,
+                            content: (
+                                <div>
+                                    <p>发布日期: {versionData.release_date}</p>
+                                    <div style={{ background: '#f5f5f5', padding: '8px', borderRadius: '4px', marginBottom: '10px', whiteSpace: 'pre-line', maxHeight: '100px', overflowY: 'auto' }}>
+                                        {versionData.changelog}
+                                    </div>
+                                    <p style={{ color: '#8c8c8c', fontSize: '12px' }}>
+                                        提示：新版安装包支持直接覆盖安装，无需卸载旧版，且会自动保留您的配置。
+                                    </p>
+                                </div>
+                            ),
+                            okText: '立即更新',
+                            cancelText: '暂不更新',
+                            onCancel: () => {
+                                // 记录用户已忽略此版本，本次会话不再提示
+                                sessionStorage.setItem('ignored_update_version', versionData.version);
+                            },
+                            onOk: () => {
+                                window.open(versionData.download_url, '_blank');
+                            }
+                        });
+                    }
+                } catch (e) {
+                    // 检查更新失败不影响主流程，忽略即可
+                    console.warn('检查更新失败', e);
+                }
+
                 // 1. 获取配置信息 (推送时间等)
                 const configRes = await api.getConfig();
                 const configData = configRes.status === 'success' && configRes.data ? configRes.data : undefined;

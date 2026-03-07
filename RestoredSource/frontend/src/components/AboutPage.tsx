@@ -1,5 +1,5 @@
-import React from 'react';
-import { Card, Typography, Tag, Button, Space, Row, Col, message } from 'antd';
+import React, { useState } from 'react';
+import { Card, Typography, Tag, Button, Space, Row, Col, message, Modal } from 'antd';
 import { 
     GithubOutlined, 
     SyncOutlined, 
@@ -7,16 +7,62 @@ import {
     PlayCircleOutlined, 
     TeamOutlined, 
     BugOutlined,
-    UserOutlined
+    UserOutlined,
+    ThunderboltFilled
 } from '@ant-design/icons';
+import { APP_VERSION, APP_NAME, DEVELOPER_NAME, GITHUB_REPO_URL, VERSION_JSON_URL } from '../constants';
 
 const { Title, Text, Paragraph } = Typography;
 
+import { compareVersions, cleanVersion } from '../utils';
+
 const AboutPage: React.FC = () => {
     const iconUrl = './icon.ico';
+    const [checking, setChecking] = useState(false);
 
     const handleOpenLink = (url: string) => {
         window.open(url, '_blank');
+    };
+
+    const handleCheckUpdate = async () => {
+        setChecking(true);
+        try {
+            const versionRes = await fetch(VERSION_JSON_URL);
+            const versionData = await versionRes.json();
+            
+            // 当前版本
+            const currentVersion = APP_VERSION;
+            
+            // 使用 compareVersions 进行版本号大小比较
+            if (compareVersions(versionData.version, currentVersion) > 0) {
+                Modal.confirm({
+                    title: `🎉 发现新版本 v${cleanVersion(versionData.version)}`,
+                    icon: <ThunderboltFilled style={{ color: '#1890ff' }} />,
+                    content: (
+                        <div>
+                            <p>发布日期: {versionData.release_date}</p>
+                            <div style={{ background: '#f5f5f5', padding: '8px', borderRadius: '4px', marginBottom: '10px', whiteSpace: 'pre-line', maxHeight: '100px', overflowY: 'auto' }}>
+                                {versionData.changelog}
+                            </div>
+                            <p style={{ color: '#8c8c8c', fontSize: '12px' }}>
+                                提示：新版安装包支持直接覆盖安装，无需卸载旧版。
+                            </p>
+                        </div>
+                    ),
+                    okText: '立即更新',
+                    cancelText: '暂不更新',
+                    onOk: () => {
+                        window.open(versionData.download_url, '_blank');
+                    }
+                });
+            } else {
+                message.success(`当前已是最新版本 v${currentVersion}`);
+            }
+        } catch (e) {
+            message.error('检查更新失败，请检查网络或稍后重试');
+        } finally {
+            setChecking(false);
+        }
     };
 
     const handleCopy = (text: string) => {
@@ -38,18 +84,18 @@ const AboutPage: React.FC = () => {
                 <div style={{ marginBottom: 16 }}>
                     <img
                         src={iconUrl}
-                        alt="ClassPush"
+                        alt={APP_NAME}
                         style={{ width: 100, height: 100, borderRadius: 20, display: 'block', margin: '0 auto' }}
                     />
                 </div>
                 
-                <Title level={2} style={{ marginBottom: 4 }}>ClassPush</Title>
+                <Title level={2} style={{ marginBottom: 4 }}>{APP_NAME}</Title>
                 <Text type="secondary" style={{ fontSize: 16 }}>Keep your classes on time</Text>
                 
                 <div style={{ margin: '16px 0' }}>
                     <Space>
-                        <Tag color="blue">v1.0.0</Tag>
-                        <Tag color="green" icon={<UserOutlined />}>开发者: Eliauk</Tag>
+                        <Tag color="blue">v{APP_VERSION}</Tag>
+                        <Tag color="green" icon={<UserOutlined />}>开发者: {DEVELOPER_NAME}</Tag>
                     </Space>
                 </div>
 
@@ -61,15 +107,16 @@ const AboutPage: React.FC = () => {
                 <Space size="large">
                     <Button 
                         type="primary" 
-                        icon={<SyncOutlined />} 
+                        icon={<SyncOutlined spin={checking} />} 
                         style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
-                        onClick={() => handleOpenLink('https://github.com/King52HerTz/ClassPushPro/releases/latest')}
+                        onClick={handleCheckUpdate}
+                        loading={checking}
                     >
                         检查更新
                     </Button>
                     <Button 
                         icon={<GithubOutlined />}
-                        onClick={() => handleOpenLink('https://github.com/King52HerTz/ClassPushPro')}
+                        onClick={() => handleOpenLink(GITHUB_REPO_URL)}
                     >
                         GitHub 仓库
                     </Button>
