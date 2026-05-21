@@ -1,6 +1,7 @@
 import requests
 import json
 import time
+import os
 from requests.adapters import HTTPAdapter
 from logger import logger
 
@@ -47,6 +48,23 @@ class Pusher:
             adapter = HTTPAdapter(max_retries=retry)
             self.session.mount("https://", adapter)
             self.session.mount("http://", adapter)
+
+    def _get_push_timeout(self):
+        connect_timeout = 8
+        read_timeout = 12
+        try:
+            raw_connect = (os.getenv("CP_PUSH_CONNECT_TIMEOUT") or "").strip()
+            if raw_connect:
+                connect_timeout = max(1, float(raw_connect))
+        except Exception:
+            pass
+        try:
+            raw_read = (os.getenv("CP_PUSH_READ_TIMEOUT") or "").strip()
+            if raw_read:
+                read_timeout = max(1, float(raw_read))
+        except Exception:
+            pass
+        return (connect_timeout, read_timeout)
 
     def send(self, uids, content, summary="课程提醒", content_type=3):
         """
@@ -95,9 +113,11 @@ class Pusher:
 
         try:
             last_error_msg = ""
+            logger.info(f"WxPusher: 开始发送请求，UID 数量={len(safe_uids)}，内容类型={content_type}")
             for attempt in range(4):
+                logger.info(f"WxPusher: 第 {attempt + 1}/4 次发送尝试")
                 try:
-                    resp = self.session.post(self.BASE_URL, json=payload, timeout=10)
+                    resp = self.session.post(self.BASE_URL, json=payload, timeout=self._get_push_timeout())
                 except requests.RequestException as e:
                     logger.warning(f"推送失败(网络异常): {e.__class__.__name__}")
                     return False, f"网络错误: {e}"
@@ -125,6 +145,7 @@ class Pusher:
                             logger.warning(f"部分UID推送失败: {err_detail}")
                             return False, f"部分失败: {err_detail}"
                             
+                        logger.info("WxPusher: 消息发送成功")
                         return True, "发送成功"
                     last_error_msg = str(data.get("msg") or "未知错误")
 

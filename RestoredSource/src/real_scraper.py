@@ -142,25 +142,34 @@ class CourseScraper:
         主流程：获取所有必要参数并抓取课表
         :return: 解析后的课程列表或空列表
         """
+        logger.info("抓取流程: 开始获取当前学期信息")
         semester_id = self.fetch_semester_id()
         if not semester_id:
+            logger.warning("抓取流程: 未获取到学期 ID，无法继续抓取课表")
             return []
 
+        logger.info(f"抓取流程: 学期 ID 获取成功 -> {semester_id}")
+        logger.info("抓取流程: 开始获取课程节次模式")
         schedule_mode = self.fetch_schedule_mode()
         if not schedule_mode:
+            logger.warning("抓取流程: 未获取到节次模式 ID，无法继续抓取课表")
             return []
+        logger.info(f"抓取流程: 节次模式获取成功 -> {schedule_mode}")
 
         # 获取完整课表 (week=all)
         url = f"{SCHOOL_CONFIG['BASE_URL']}/student/curriculum?token={self.token}&xnxq01id={semester_id}&kbjcmsid={schedule_mode}&week=all"
         
         try:
+            logger.info("抓取流程: 开始请求完整课表数据")
             timeout = _get_timeout(12, 20)
             retries = _get_env_int("CP_HTTP_RETRIES", 2)
             resp = self._post_with_retry(url, timeout=timeout, retries=retries)
             # 注意：Java代码显示有些接口返回JSON对象，有些返回JSON字符串
             # 这里假设直接返回JSON对象
             raw_data = resp.json()
-            return self._parse_course_json(raw_data)
+            courses = self._parse_course_json(raw_data)
+            logger.info(f"抓取流程: 完整课表数据解析完成，共生成 {len(courses)} 条课程记录")
+            return courses
         except Exception as e:
             logger.exception("抓取课表失败")
             return []

@@ -123,10 +123,12 @@ class LoginManager:
         if not username or not password:
             return False, "用户名或密码不能为空"
 
+        logger.info("登录流程: 准备校验缓存 Token")
         if use_cache and self._try_use_cached_token(username):
             logger.info("教务登录：复用缓存Token")
             return True, "登录成功"
 
+        logger.info("登录流程: 缓存 Token 不可用，开始请求教务登录接口")
         encrypted_pwd = encrypt_password(password)
         if not encrypted_pwd:
             return False, "密码加密失败"
@@ -165,6 +167,7 @@ class LoginManager:
                         except Exception:
                             cookies_dict = {}
                         self.config_manager.update_jw_cached_token(username, self.token, now_str, cookies_dict=cookies_dict)
+                    logger.info("登录流程: 教务登录成功，Token 已更新到缓存")
                     return True, "登录成功"
                 else:
                     return False, "登录成功但未获取到Token"

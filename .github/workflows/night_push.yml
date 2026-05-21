@@ -49,9 +49,13 @@ jobs:
         CP_PASSWORD: ${{ secrets.CP_PASSWORD }}
         CP_APP_TOKEN: ${{ secrets.CP_APP_TOKEN }}
         CP_UID: ${{ secrets.CP_UID }}
-        CP_HTTP_CONNECT_TIMEOUT: "30"
-        CP_HTTP_READ_TIMEOUT: "30"
-        CP_HTTP_RETRIES: "2"
+        CP_PUSH_TIME: "20:00"
+        # 手动触发和定时触发都关闭抖动延迟，避免卡住数分钟
+        CP_JITTER_MAX_SECONDS: "0"
+        # 教务站点失败时尽快回退到缓存，避免 Actions 长时间卡住
+        CP_HTTP_CONNECT_TIMEOUT: "10"
+        CP_HTTP_READ_TIMEOUT: "15"
+        CP_HTTP_RETRIES: "1"
       run: |
         # 运行无头模式脚本
         # 注意：这里路径是 src/action_runner.py，因为 action_runner 在 src 下

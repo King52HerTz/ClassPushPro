@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 import datetime
 from logger import logger
@@ -25,7 +26,7 @@ def run_push_task(force=False, source="auto"):
     password = config.get("password")
     app_token = config.get("app_token")
     uid = config.get("uid")
-    push_time_str = config.get("push_time", "20:00")
+    push_time_str = (os.getenv("CP_PUSH_TIME") or "").strip() or config.get("push_time", "20:00")
     last_push_time_str = config.get("last_push_success_time", "")
     last_auto_push_time_str = config.get("last_auto_push_success_time", "")
     
@@ -109,25 +110,32 @@ def run_push_task(force=False, source="auto"):
     current_week = "1"
     
     try:
+        logger.info("阶段[1/3] 开始登录教务系统")
         login_mgr = LoginManager(config)
         success, msg = login_mgr.login(username, password, use_cache=True)
         
         if success:
+            if login_mgr.used_cached_token:
+                logger.info("阶段[1/3] 教务登录完成，当前使用缓存 Token")
+            else:
+                logger.info("阶段[1/3] 教务登录完成，已获取在线 Token")
             token = login_mgr.get_token()
             scraper = CourseScraper(token, session=login_mgr.session)
+            logger.info("阶段[2/3] 开始抓取课表数据")
             courses = scraper.fetch_course_data()
             current_week = scraper.fetch_current_week()
             
             if courses:
                 # 成功获取，更新缓存
                 config.save_cached_courses(courses, current_week)
+                logger.info(f"阶段[2/3] 课表抓取完成，共获取 {len(courses)} 条课程记录")
             else:
-                logger.warning("未获取到课程数据或课表为空")
+                logger.warning("阶段[2/3] 未获取到课程数据或课表为空")
         else:
-            logger.warning(f"登录失败: {msg}，尝试使用本地缓存")
+            logger.warning(f"阶段[1/3] 登录失败: {msg}，尝试使用本地缓存")
             
     except Exception as e:
-        logger.error(f"在线抓取异常: {e}，尝试使用本地缓存")
+        logger.error(f"阶段[1-2/3] 在线抓取异常: {e}，尝试使用本地缓存")
 
     # 如果在线获取失败，尝试读取缓存
     is_offline_mode = False
@@ -136,6 +144,7 @@ def run_push_task(force=False, source="auto"):
         if cached_data:
             courses = cached_data.get("courses", [])
             current_week = cached_data.get("current_week", "1")
+            logger.info(f"阶段[2/3] 在线抓取不可用，开始加载离线缓存，共命中 {len(courses)} 条课程记录")
             
             # 智能周次推算逻辑
             # 如果缓存中有上次更新时间，尝试推算当前周次
@@ -164,7 +173,7 @@ def run_push_task(force=False, source="auto"):
             is_offline_mode = True
             logger.info(f"已切换至离线模式，使用本地缓存课表 (当前周次: {current_week})")
         else:
-            logger.error("在线抓取失败且无本地缓存，无法推送")
+            logger.error("阶段[2/3] 在线抓取失败且无本地缓存，无法继续推送")
             return False, "获取课表失败"
     
     # ---- 智能切换目标日期 (仅针对延迟的晨间推送) ----
@@ -207,10 +216,11 @@ def run_push_task(force=False, source="auto"):
     
     # 6. 推送
     pusher = Pusher(app_token)
+    logger.info(f"阶段[3/3] 开始推送到 WxPusher，目标 UID 数量: 1，摘要: {title}")
     success, msg = pusher.send([uid], content, summary=title, content_type=2)
     
     if success:
-        logger.info("推送成功")
+        logger.info("阶段[3/3] 推送成功")
         now_str = now.strftime("%Y-%m-%d %H:%M:%S")
         config.update_last_push_time(now_str)
         if source == "auto":
@@ -219,7 +229,7 @@ def run_push_task(force=False, source="auto"):
             config.update_last_manual_push_time(now_str)
         return True, "推送成功"
     else:
-        logger.error(f"推送失败: {msg}")
+        logger.error(f"阶段[3/3] 推送失败: {msg}")
         return False, f"推送失败: {msg}"
 
 def _filter_courses(all_courses, target_date, current_week):

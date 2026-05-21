@@ -51,9 +51,12 @@ jobs:
         CP_UID: ${{ secrets.CP_UID }}
         # 强制指定推送时间为 07:00，确保脚本识别为“早安推送”，只推今天的课
         CP_PUSH_TIME: "07:00"
-        CP_HTTP_CONNECT_TIMEOUT: "30"
-        CP_HTTP_READ_TIMEOUT: "30"
-        CP_HTTP_RETRIES: "2"
+        # 手动触发和定时触发都关闭抖动延迟，避免卡住数分钟
+        CP_JITTER_MAX_SECONDS: "0"
+        # 教务站点失败时尽快回退到缓存，避免 Actions 长时间卡住
+        CP_HTTP_CONNECT_TIMEOUT: "10"
+        CP_HTTP_READ_TIMEOUT: "15"
+        CP_HTTP_RETRIES: "1"
       run: |
         # 运行无头模式脚本
         # 适配不同的目录结构 (RestoredSource 或 src)
