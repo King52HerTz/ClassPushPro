@@ -29,10 +29,22 @@ def run_push_task(force=False, source="auto"):
     push_time_str = (os.getenv("CP_PUSH_TIME") or "").strip() or config.get("push_time", "20:00")
     last_push_time_str = config.get("last_push_success_time", "")
     last_auto_push_time_str = config.get("last_auto_push_success_time", "")
+    cached_data_preview = config.get_cached_courses()
+    has_bootstrap_cache = bool(cached_data_preview and cached_data_preview.get("courses"))
+    bootstrap_cache_count = len(cached_data_preview.get("courses", [])) if cached_data_preview else 0
+    bootstrap_cache_week = cached_data_preview.get("current_week", "未知") if cached_data_preview else "未知"
+    bootstrap_cache_time = cached_data_preview.get("update_time", "未知") if cached_data_preview else "未知"
     
     if not all([username, password, app_token, uid]):
         logger.error("配置不完整，跳过推送")
         return False, "配置不完整"
+
+    if has_bootstrap_cache:
+        logger.info(
+            f"缓存预检查: 已发现离线课表缓存，记录数={bootstrap_cache_count}，缓存周次={bootstrap_cache_week}，缓存时间戳={bootstrap_cache_time}"
+        )
+    else:
+        logger.warning("缓存预检查: 当前未发现可用课表缓存；若在线抓取失败，本次任务将直接失败")
 
     # ---- 智能补发逻辑判断 ----
     now = datetime.datetime.now()
@@ -140,11 +152,14 @@ def run_push_task(force=False, source="auto"):
     # 如果在线获取失败，尝试读取缓存
     is_offline_mode = False
     if not courses:
-        cached_data = config.get_cached_courses()
+        cached_data = cached_data_preview or config.get_cached_courses()
         if cached_data:
             courses = cached_data.get("courses", [])
             current_week = cached_data.get("current_week", "1")
-            logger.info(f"阶段[2/3] 在线抓取不可用，开始加载离线缓存，共命中 {len(courses)} 条课程记录")
+            cache_update_ts = cached_data.get("update_time", "未知")
+            logger.info(
+                f"阶段[2/3] 在线抓取不可用，开始加载离线缓存，共命中 {len(courses)} 条课程记录，缓存时间戳={cache_update_ts}"
+            )
             
             # 智能周次推算逻辑
             # 如果缓存中有上次更新时间，尝试推算当前周次
@@ -173,7 +188,7 @@ def run_push_task(force=False, source="auto"):
             is_offline_mode = True
             logger.info(f"已切换至离线模式，使用本地缓存课表 (当前周次: {current_week})")
         else:
-            logger.error("阶段[2/3] 在线抓取失败且无本地缓存，无法继续推送")
+            logger.error("阶段[2/3] 在线抓取失败，且缓存预检查与兜底读取均未命中本地课表缓存，无法继续推送")
             return False, "获取课表失败"
     
     # ---- 智能切换目标日期 (仅针对延迟的晨间推送) ----

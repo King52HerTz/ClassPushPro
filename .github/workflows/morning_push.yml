@@ -49,6 +49,8 @@ jobs:
         CP_PASSWORD: ${{ secrets.CP_PASSWORD }}
         CP_APP_TOKEN: ${{ secrets.CP_APP_TOKEN }}
         CP_UID: ${{ secrets.CP_UID }}
+        # 可选：填入本地 ~/.ClassPush/config.json 的 Base64 内容，作为云端初始缓存
+        CP_CONFIG_JSON_B64: ${{ secrets.CP_CONFIG_JSON_B64 }}
         # 强制指定推送时间为 07:00，确保脚本识别为“早安推送”，只推今天的课
         CP_PUSH_TIME: "07:00"
         # 手动触发和定时触发都关闭抖动延迟，避免卡住数分钟

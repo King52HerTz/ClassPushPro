@@ -1,5 +1,9 @@
 import os
 import sys
+import json
+import base64
+import socket
+import shutil
 import datetime
 import time
 import hashlib
@@ -73,6 +77,94 @@ def _maybe_sleep_jitter():
     print(f"Jitter sleep: {seconds}s (max={max_seconds})")
     time.sleep(seconds)
 
+def _get_target_config_path():
+    target_dir = os.path.join(os.path.expanduser("~"), ".ClassPush")
+    os.makedirs(target_dir, exist_ok=True)
+    return os.path.join(target_dir, "config.json")
+
+def _print_config_cache_status(config_path, source_label):
+    if not os.path.exists(config_path):
+        print(f"Config bootstrap [{source_label}]: 未发现配置文件")
+        return
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        print(f"Warning: Failed to inspect config cache [{source_label}]: {e}")
+        return
+
+    has_jw_token = bool(data.get("jw_cached_token"))
+    has_courses_cache = bool(data.get("cached_courses_data"))
+    jw_cached_time = data.get("jw_cached_time") or "无"
+    print(
+        "Config bootstrap [{}]: jw_cached_token={}, cached_courses_data={}, jw_cached_time={}".format(
+            source_label,
+            "yes" if has_jw_token else "no",
+            "yes" if has_courses_cache else "no",
+            jw_cached_time,
+        )
+    )
+
+def _restore_bootstrap_config():
+    target_path = _get_target_config_path()
+    if os.path.exists(target_path):
+        print(f"Config bootstrap: 使用缓存目录中的现有配置 {target_path}")
+        _print_config_cache_status(target_path, "existing-cache")
+        return
+
+    config_b64 = (os.getenv("CP_CONFIG_JSON_B64") or "").strip()
+    if config_b64:
+        try:
+            decoded_bytes = base64.b64decode(config_b64)
+            decoded_text = decoded_bytes.decode("utf-8")
+            json.loads(decoded_text)
+            with open(target_path, "w", encoding="utf-8") as f:
+                f.write(decoded_text)
+            print(f"Config bootstrap: 已从 CP_CONFIG_JSON_B64 恢复配置到 {target_path}")
+            _print_config_cache_status(target_path, "secret")
+            return
+        except Exception as e:
+            print(f"Warning: Failed to restore config from CP_CONFIG_JSON_B64: {e}")
+
+    repo_config_path = os.path.join(current_dir, "..", "config.json")
+    if not os.path.exists(repo_config_path):
+        repo_config_path = os.path.join(current_dir, "config.json")
+
+    if os.path.exists(repo_config_path):
+        shutil.copy2(repo_config_path, target_path)
+        print(f"Config bootstrap: 已从仓库配置恢复到 {target_path}")
+        _print_config_cache_status(target_path, "repository")
+        return
+
+    print("Config bootstrap: 未发现可恢复的初始配置，后续仅能依赖在线抓取")
+
+def _probe_school_network():
+    host = "jw.hnit.edu.cn"
+    port = 443
+    print(f"Network probe: 开始检测 {host}:{port}")
+
+    try:
+        addr_infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+        ip_list = []
+        for item in addr_infos:
+            ip = item[4][0]
+            if ip not in ip_list:
+                ip_list.append(ip)
+        if ip_list:
+            print(f"Network probe: DNS 解析成功 -> {', '.join(ip_list[:3])}")
+        else:
+            print("Network probe: DNS 解析成功，但未获取到可用 IP")
+    except Exception as e:
+        print(f"Warning: Network probe DNS 解析失败: {e}")
+        return
+
+    try:
+        with socket.create_connection((host, port), timeout=5):
+            print("Network probe: TCP 443 连接成功，云端当前具备访问教务的基础网络")
+    except Exception as e:
+        print(f"Warning: Network probe TCP 连接失败: {e}")
+
 if __name__ == "__main__":
     print("="*50)
     print(f"ClassPush Action Runner - {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -83,23 +175,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     _maybe_sleep_jitter()
-
-    # 1.5 尝试加载仓库中的 config.json (用于云端离线模式)
-    # 如果用户上传了 config.json 到仓库根目录，自动将其复制到默认配置路径
-    try:
-        repo_config_path = os.path.join(current_dir, "..", "config.json")
-        if not os.path.exists(repo_config_path):
-            repo_config_path = os.path.join(current_dir, "config.json")
-            
-        if os.path.exists(repo_config_path):
-            import shutil
-            target_dir = os.path.join(os.path.expanduser("~"), ".ClassPush")
-            os.makedirs(target_dir, exist_ok=True)
-            target_path = os.path.join(target_dir, "config.json")
-            shutil.copy2(repo_config_path, target_path)
-            print(f"Loaded config.json from repository to {target_path}")
-    except Exception as e:
-        print(f"Warning: Failed to load repository config: {e}")
+    _restore_bootstrap_config()
+    _probe_school_network()
 
     # 2. 运行推送任务
     # force=True: 强制运行，忽略"今日已推送"的检查 (因为 Actions 本身就是定时的)
