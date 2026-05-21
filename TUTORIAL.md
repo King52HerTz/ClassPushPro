@@ -33,7 +33,7 @@ GitHub 非常安全，它提供了一个“保险箱”功能 (Secrets)，你的
 4.  点击右上角的绿色按钮 **New repository secret** (新建仓库机密)。
     > ![New repository secret 按钮位置](docs/images/p5.png)
 
-你需要重复添加以下 4 个变量 (注意名字要一模一样，全大写)：
+你需要先添加以下 4 个**必填**变量 (注意名字要一模一样，全大写)：
 
 | Name (变量名) | Secret (值) | 说明 |
 | :--- | :--- | :--- |
@@ -44,6 +44,8 @@ GitHub 非常安全，它提供了一个“保险箱”功能 (Secrets)，你的
 
 > **提示**：一定要填对，如果密码错了，后面运行会失败哦。
 > ![4 个变量都要添加 如图所示](docs/images/p6.png)
+>
+> **补充**：后面的“第四步”里，还会再加 1 个**推荐但非必填**的缓存变量 `CP_CONFIG_JSON_B64`，它是给云端断网时兜底用的。
 
 ### 如何获取 AppToken 和 UID？
 
@@ -107,22 +109,50 @@ GitHub 非常安全，它提供了一个“保险箱”功能 (Secrets)，你的
 
 **这是云端版独有的黑科技！**
 
-即使学校教务系统崩了、由于网络波动无法访问，只要你上传了本地的缓存文件，GitHub 依然能根据缓存算出今天的课表并推送给你。
+即使学校教务系统崩了、由于网络波动无法访问，只要你提前把本地缓存带到 GitHub，云端依然能根据缓存算出今天的课表并推送给你。
 
-1.  **准备缓存文件**：
-    *   在你自己的电脑上运行一次 ClassPush 软件，确保能成功看到课表。
-    *   找到配置文件 `config.json`。
-    *   它通常在：`C:\Users\你的用户名\.ClassPush\config.json`。
+### 推荐做法：把缓存配置转成 Base64，保存到 GitHub Secret
 
-2.  **上传到 GitHub**：
-    *   回到你的 GitHub 仓库首页。
-    *   点击文件列表右上角的 **Add file** 按钮 -> 选择 **Upload files**。
-    *   把你的 `config.json` 文件拖进去。
-    *   点击绿色的 **Commit changes** 按钮。
+**不推荐**再把 `config.json` 直接上传到仓库文件列表里。
+更安全的方式是：把它转成 Base64 后，保存到 GitHub Secret `CP_CONFIG_JSON_B64`。
 
-> **⚠️ 高能预警**：
-> `config.json` 里包含加密后的账号密码。为了安全，**请务必确保你的 GitHub 仓库是 Private (私有的)**，不要分享给别人！
-> (在 Settings -> General -> Danger Zone -> Change repository visibility 中可以设置为 Private)
+1.  **先在本地成功抓一次最新课表**：
+    *   在你自己的电脑上运行一次 ClassPush 桌面版。
+    *   确保软件里已经能正常看到**最新课表**。
+    *   这一步很重要，因为只有成功抓取过，`config.json` 里才会带上缓存数据。
+
+2.  **找到本地配置文件 `config.json`**：
+    *   文件通常在：`C:\Users\你的用户名\.ClassPush\config.json`
+
+3.  **把 `config.json` 转成 Base64**：
+    *   打开 Windows PowerShell
+    *   执行下面这条命令：
+
+    ```powershell
+    [Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:USERPROFILE\.ClassPush\config.json"))
+    ```
+
+    *   命令执行后会输出一大串很长的字符串，把它**完整复制**下来。
+
+4.  **保存到 GitHub Secret**：
+    *   进入你的 GitHub 仓库页面。
+    *   点击 **Settings** -> **Secrets and variables** -> **Actions**。
+    *   点击 **New repository secret**。
+    *   新增一个变量：
+
+| Name (变量名) | Secret (值) | 说明 |
+| :--- | :--- | :--- |
+| `CP_CONFIG_JSON_B64` | 刚才复制的 Base64 长字符串 | 本地缓存配置的 Base64 内容 |
+
+5.  **手动测试一次**：
+    *   回到 **Actions** 页面，手动运行一次 `Morning Push` 或 `Night Push`。
+    *   如果 GitHub 当次连不上学校教务，但你之前已经准备好了缓存，云端仍然可以继续推送课表。
+
+> **为什么推荐这种方式？**
+> 因为它比直接把 `config.json` 上传到仓库里更安全，配置文件会保存在 GitHub 的 Secret 里，而不是直接出现在仓库文件列表中。
+
+> **⚠️ 安全提醒**：
+> `config.json` 里包含加密后的账号密码和缓存数据，不要随意发给别人，也不要把生成出来的 Base64 字符串贴到公开页面。
 
 ---
 

@@ -13,6 +13,7 @@ export interface AppConfig {
   app_token: string;
   push_time: string;
   auto_start: boolean;
+  grade_push_enabled?: boolean;
   last_push_success_time?: string;
   last_ignored_push_date?: string;
   jw_cached_username?: string;
@@ -44,6 +45,61 @@ export interface PreviewCoursesData {
 export interface SystemStatusData {
   autostart?: boolean;
   scheduler_active: boolean;
+}
+
+export interface GradeSemester {
+  semester_id: string;
+  semester_name: string;
+}
+
+export interface GradeItem {
+  grade_id: string;
+  semester_id: string;
+  semester_name: string;
+  course_name: string;
+  score: string;
+  credit: string;
+  gpa: string;
+  exam_name: string;
+  examination_nature: string;
+  course_nature: string;
+  curriculum_attributes: string;
+  course_code: string;
+  pass_status: string;
+  publish_time?: string;
+  snapshot_hash?: string;
+}
+
+export interface GradeStudentInfo {
+  student_name?: string;
+  student_no?: string;
+  class_name?: string;
+  academy_name?: string;
+}
+
+export interface GradeQueryData {
+  current_term: GradeSemester;
+  semester_list: GradeSemester[];
+  selected_semester?: GradeSemester;
+  student_info?: GradeStudentInfo;
+  summary?: Record<string, string>;
+  grades: GradeItem[];
+  source?: 'online' | 'offline';
+}
+
+export interface GradeCheckData {
+  current_term?: GradeSemester;
+  checked_semester?: GradeSemester;
+  new_items: GradeItem[];
+  updated_items: Array<{
+    before: GradeItem;
+    after: GradeItem;
+  }>;
+  push_result?: {
+    attempted: boolean;
+    success: boolean;
+    message: string;
+  };
 }
 
 export interface LoginFormValues {

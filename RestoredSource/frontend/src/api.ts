@@ -1,4 +1,12 @@
-import type { ApiResponse, AppConfig, ConfigInput, PreviewCoursesData, SystemStatusData } from './types';
+import type {
+    ApiResponse,
+    AppConfig,
+    ConfigInput,
+    GradeCheckData,
+    GradeQueryData,
+    PreviewCoursesData,
+    SystemStatusData
+} from './types';
 
 // 假设 pywebview 会注入 window.pywebview.api
 declare global {
@@ -15,6 +23,11 @@ declare global {
                 get_system_status: () => Promise<ApiResponse<SystemStatusData>>;
                 toggle_scheduler: (enable: boolean) => Promise<ApiResponse<null>>;
                 check_today_pushed: () => Promise<ApiResponse<{ pushed: boolean; last_time?: string }>>;
+                get_grade_semesters: () => Promise<ApiResponse<GradeQueryData>>;
+                get_grades: (semesterId?: string) => Promise<ApiResponse<GradeQueryData>>;
+                refresh_grades: (semesterId?: string) => Promise<ApiResponse<GradeQueryData>>;
+                check_new_grades: () => Promise<ApiResponse<GradeCheckData>>;
+                save_grade_push_settings: (enable: boolean) => Promise<ApiResponse<null>>;
             }
         }
     }
@@ -79,6 +92,36 @@ export const api = {
     toggleScheduler: async (enable: boolean): Promise<ApiResponse<null>> => {
         if (window.pywebview?.api?.toggle_scheduler) {
             return await window.pywebview.api.toggle_scheduler(enable);
+        }
+        return { status: 'error', message: 'API未就绪' };
+    },
+    getGradeSemesters: async (): Promise<ApiResponse<GradeQueryData>> => {
+        if (window.pywebview?.api?.get_grade_semesters) {
+            return await window.pywebview.api.get_grade_semesters();
+        }
+        return { status: 'error', message: 'API未就绪' };
+    },
+    getGrades: async (semesterId?: string): Promise<ApiResponse<GradeQueryData>> => {
+        if (window.pywebview?.api?.get_grades) {
+            return await window.pywebview.api.get_grades(semesterId);
+        }
+        return { status: 'error', message: 'API未就绪' };
+    },
+    refreshGrades: async (semesterId?: string): Promise<ApiResponse<GradeQueryData>> => {
+        if (window.pywebview?.api?.refresh_grades) {
+            return await window.pywebview.api.refresh_grades(semesterId);
+        }
+        return { status: 'error', message: 'API未就绪' };
+    },
+    checkNewGrades: async (): Promise<ApiResponse<GradeCheckData>> => {
+        if (window.pywebview?.api?.check_new_grades) {
+            return await window.pywebview.api.check_new_grades();
+        }
+        return { status: 'error', message: 'API未就绪' };
+    },
+    saveGradePushSettings: async (enable: boolean): Promise<ApiResponse<null>> => {
+        if (window.pywebview?.api?.save_grade_push_settings) {
+            return await window.pywebview.api.save_grade_push_settings(enable);
         }
         return { status: 'error', message: 'API未就绪' };
     }

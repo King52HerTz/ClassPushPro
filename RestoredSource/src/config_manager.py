@@ -63,6 +63,7 @@ class ConfigManager:
                 "uid": self._decrypt(encrypted_data.get("uid", "")).strip(),
                 "push_time": encrypted_data.get("push_time", "07:00"),
                 "auto_start": encrypted_data.get("auto_start", False),
+                "grade_push_enabled": encrypted_data.get("grade_push_enabled", False),
                 "last_push_success_time": encrypted_data.get("last_push_success_time", ""),
                 "last_auto_push_success_time": encrypted_data.get("last_auto_push_success_time", ""),
                 "last_manual_push_success_time": encrypted_data.get("last_manual_push_success_time", ""),
@@ -110,6 +111,7 @@ class ConfigManager:
             "uid": self._encrypt(uid),
             "push_time": push_time,
             "auto_start": auto_start,
+            "grade_push_enabled": self.config_data.get("grade_push_enabled", False),
             "last_push_success_time": self.config_data.get("last_push_success_time", ""),
             "last_auto_push_success_time": self.config_data.get("last_auto_push_success_time", ""),
             "last_manual_push_success_time": self.config_data.get("last_manual_push_success_time", ""),
@@ -154,6 +156,10 @@ class ConfigManager:
         self._save_current_config()
         return True
 
+    def update_grade_push_enabled(self, enabled):
+        self.config_data["grade_push_enabled"] = bool(enabled)
+        return self._save_current_config()
+
     def _save_current_config(self):
         """保存当前内存中的配置到文件"""
         encrypted_data = {
@@ -163,6 +169,7 @@ class ConfigManager:
             "uid": self._encrypt(self.config_data.get("uid", "")),
             "push_time": self.config_data.get("push_time", "07:00"),
             "auto_start": self.config_data.get("auto_start", False),
+            "grade_push_enabled": self.config_data.get("grade_push_enabled", False),
             "last_push_success_time": self.config_data.get("last_push_success_time", ""),
             "last_auto_push_success_time": self.config_data.get("last_auto_push_success_time", ""),
             "last_manual_push_success_time": self.config_data.get("last_manual_push_success_time", ""),

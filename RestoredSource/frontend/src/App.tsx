@@ -5,11 +5,13 @@ import {
   CalendarOutlined,
   SettingOutlined,
   InfoCircleOutlined,
+  ReadOutlined,
   LeftOutlined,
   RightOutlined
 } from '@ant-design/icons';
 import DashboardPage from './components/DashboardPage';
 import CoursePreviewPage from './components/CoursePreviewPage';
+import GradesPage from './components/GradesPage';
 import SettingsPage from './components/SettingsPage';
 import AboutPage from './components/AboutPage';
 import LoginModal from './components/LoginModal';
@@ -130,6 +132,8 @@ const App = () => {
         return <DashboardPage onNavigate={(key) => setSelectedKey(key)} />;
       case 'preview':
         return <CoursePreviewPage />;
+      case 'grades':
+        return <GradesPage />;
       case 'settings':
         // 传递 logout 处理函数给 SettingsPage
         return <SettingsPage onLogout={handleLogout} isLoggedIn={isLoggedIn} />;
@@ -237,6 +241,11 @@ const App = () => {
               label: '课表预览',
             },
             {
+              key: 'grades',
+              icon: <ReadOutlined />,
+              label: '成绩',
+            },
+            {
               key: 'settings',
               icon: <SettingOutlined />,
               label: '设置',
@@ -273,6 +282,7 @@ const App = () => {
           <div style={{ fontSize: 18, fontWeight: 'bold', marginLeft: 24 }}> {/* 增加左边距 */}
             {selectedKey === 'dashboard' && '仪表盘'}
             {selectedKey === 'preview' && '课表预览'}
+            {selectedKey === 'grades' && '成绩'}
             {selectedKey === 'settings' && '设置'}
             {selectedKey === 'about' && '关于'}
           </div>

@@ -3,6 +3,7 @@ import threading
 import re
 from logger import logger
 from config_manager import ConfigManager
+from grade_service import GradeService
 from login_manager import LoginManager
 from real_scraper import CourseScraper
 from run_job import run_push_task
@@ -12,6 +13,7 @@ from scheduler import create_schedule_task, delete_schedule_task, check_task_sta
 class Api:
     def __init__(self):
         self.config = ConfigManager()
+        self.grade_service = GradeService(self.config)
 
     def ignore_missed_push(self, date_str):
         """标记某天的补发提醒为已忽略 (YYYY-MM-DD)"""
@@ -134,6 +136,56 @@ class Api:
             }
             
         return {"status": "error", "message": f"获取失败: {msg} 且无本地缓存"}
+
+    def get_grade_semesters(self):
+        """获取成绩学期列表"""
+        try:
+            result = self.grade_service.get_grade_semesters()
+            return {"status": "success", "data": result}
+        except Exception as e:
+            logger.exception("获取成绩学期列表失败")
+            return {"status": "error", "message": f"获取成绩学期失败: {e}"}
+
+    def get_grades(self, semester_id=None):
+        """获取某学期成绩"""
+        try:
+            result = self.grade_service.get_grades(semester_id=semester_id)
+            return {"status": "success", "data": result}
+        except Exception as e:
+            logger.exception("获取成绩失败")
+            return {"status": "error", "message": f"获取成绩失败: {e}"}
+
+    def refresh_grades(self, semester_id=None):
+        """强制刷新某学期成绩"""
+        try:
+            result = self.grade_service.refresh_grades(semester_id=semester_id)
+            return {"status": "success", "data": result, "message": "刷新成功"}
+        except Exception as e:
+            logger.exception("刷新成绩失败")
+            return {"status": "error", "message": f"刷新成绩失败: {e}"}
+
+    def check_new_grades(self):
+        """检查当前学期是否有新增成绩"""
+        try:
+            result = self.grade_service.check_new_grades()
+            new_count = len(result.get("new_items", []))
+            message = f"检查完成，发现 {new_count} 条新增成绩"
+            return {"status": "success", "data": result, "message": message}
+        except Exception as e:
+            logger.exception("检查新成绩失败")
+            return {"status": "error", "message": f"检查新成绩失败: {e}"}
+
+    def save_grade_push_settings(self, enable):
+        """保存成绩自动推送开关"""
+        try:
+            success = self.grade_service.save_grade_push_settings(enable)
+            return {
+                "status": "success" if success else "error",
+                "message": "保存成功" if success else "保存失败",
+            }
+        except Exception as e:
+            logger.exception("保存成绩推送设置失败")
+            return {"status": "error", "message": str(e)}
 
     def check_today_pushed(self):
         """检查今日是否已成功推送"""
