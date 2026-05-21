@@ -14,15 +14,27 @@ jobs:
     # 设置时区为北京时间，方便日志查看
     env:
       TZ: Asia/Shanghai
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.9'
+        cache: 'pip'
+
+    - name: Prepare ClassPush cache dir
+      run: |
+        mkdir -p ~/.ClassPush
+
+    - name: Restore ClassPush cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.ClassPush
+        key: classpush-${{ runner.os }}-v1
 
     - name: Install dependencies
       run: |
@@ -37,6 +49,9 @@ jobs:
         CP_PASSWORD: ${{ secrets.CP_PASSWORD }}
         CP_APP_TOKEN: ${{ secrets.CP_APP_TOKEN }}
         CP_UID: ${{ secrets.CP_UID }}
+        CP_HTTP_CONNECT_TIMEOUT: "30"
+        CP_HTTP_READ_TIMEOUT: "30"
+        CP_HTTP_RETRIES: "2"
       run: |
         # 运行无头模式脚本
         # 注意：这里路径是 src/action_runner.py，因为 action_runner 在 src 下

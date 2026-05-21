@@ -1,8 +1,38 @@
 import requests
 import json
 from datetime import datetime
+import os
+import time
+import random
 from school_adapter import SCHOOL_CONFIG
 from logger import logger
+
+def _get_env_int(name, default_val):
+    raw = (os.getenv(name) or "").strip()
+    if not raw:
+        return default_val
+    try:
+        return int(raw)
+    except Exception:
+        return default_val
+
+def _get_env_float(name, default_val):
+    raw = (os.getenv(name) or "").strip()
+    if not raw:
+        return default_val
+    try:
+        return float(raw)
+    except Exception:
+        return default_val
+
+def _get_timeout(connect_default, read_default):
+    connect = _get_env_float("CP_HTTP_CONNECT_TIMEOUT", connect_default)
+    read = _get_env_float("CP_HTTP_READ_TIMEOUT", read_default)
+    if connect <= 0:
+        connect = connect_default
+    if read <= 0:
+        read = read_default
+    return (connect, read)
 
 class CourseScraper:
     """
@@ -15,11 +45,28 @@ class CourseScraper:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         })
 
+    def _post_with_retry(self, url, timeout, retries):
+        last_exc = None
+        for attempt in range(max(0, retries) + 1):
+            try:
+                return self.session.post(url, timeout=timeout)
+            except requests.RequestException as e:
+                last_exc = e
+                if attempt >= retries:
+                    raise
+                base = _get_env_float("CP_HTTP_RETRY_BACKOFF_SECONDS", 1.5)
+                sleep_seconds = (base * (2 ** attempt)) + random.random()
+                time.sleep(sleep_seconds)
+        if last_exc:
+            raise last_exc
+
     def fetch_semester_id(self):
         """获取当前学期ID (xnxq01id)"""
         url = f"{SCHOOL_CONFIG['BASE_URL']}/getXnxqList?token={self.token}"
         try:
-            resp = self.session.post(url, timeout=10)
+            timeout = _get_timeout(10, 15)
+            retries = _get_env_int("CP_HTTP_RETRIES", 2)
+            resp = self._post_with_retry(url, timeout=timeout, retries=retries)
             data = resp.json()
             
             # 有时返回的 data 本身可能是字符串形式的JSON，或者是一个字典但结构不同
@@ -66,7 +113,9 @@ class CourseScraper:
         """获取当前周次 (nowWeek)"""
         url = f"{SCHOOL_CONFIG['BASE_URL']}/teachingWeek?token={self.token}"
         try:
-            resp = self.session.post(url, timeout=10)
+            timeout = _get_timeout(8, 12)
+            retries = _get_env_int("CP_HTTP_RETRIES", 1)
+            resp = self._post_with_retry(url, timeout=timeout, retries=retries)
             data = resp.json()
             return data.get("nowWeek", "1")
         except Exception as e:
@@ -77,7 +126,9 @@ class CourseScraper:
         """获取课程节次模式ID (kbjcmsid)"""
         url = f"{SCHOOL_CONFIG['BASE_URL']}/Get_sjkbms?token={self.token}"
         try:
-            resp = self.session.post(url, timeout=10)
+            timeout = _get_timeout(10, 15)
+            retries = _get_env_int("CP_HTTP_RETRIES", 2)
+            resp = self._post_with_retry(url, timeout=timeout, retries=retries)
             data = resp.json()
             if data and "data" in data and len(data["data"]) > 0:
                 return data["data"][0].get("kbjcmsid")
@@ -103,7 +154,9 @@ class CourseScraper:
         url = f"{SCHOOL_CONFIG['BASE_URL']}/student/curriculum?token={self.token}&xnxq01id={semester_id}&kbjcmsid={schedule_mode}&week=all"
         
         try:
-            resp = self.session.post(url, timeout=15)
+            timeout = _get_timeout(12, 20)
+            retries = _get_env_int("CP_HTTP_RETRIES", 2)
+            resp = self._post_with_retry(url, timeout=timeout, retries=retries)
             # 注意：Java代码显示有些接口返回JSON对象，有些返回JSON字符串
             # 这里假设直接返回JSON对象
             raw_data = resp.json()

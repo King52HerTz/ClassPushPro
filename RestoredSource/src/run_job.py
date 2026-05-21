@@ -171,7 +171,7 @@ def run_push_task(force=False, source="auto"):
     if is_delayed and is_morning_push:
         # 如果是延迟的晨间推送，检查今天是否还有课
         # 如果今天的课都上完了，就改推明天的
-        today_courses = _filter_courses(courses, now, scraper.fetch_current_week())
+        today_courses = _filter_courses(courses, now, current_week)
         if _are_all_courses_finished(today_courses):
             logger.info("今日课程已全部结束，智能切换为推送明日课表")
             target_date = now + datetime.timedelta(days=1)

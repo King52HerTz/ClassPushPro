@@ -1,8 +1,38 @@
 import requests
 import json
 import datetime
+import os
+import time
+import random
 from school_adapter import SCHOOL_CONFIG, encrypt_password
 from logger import logger
+
+def _get_env_int(name, default_val):
+    raw = (os.getenv(name) or "").strip()
+    if not raw:
+        return default_val
+    try:
+        return int(raw)
+    except Exception:
+        return default_val
+
+def _get_env_float(name, default_val):
+    raw = (os.getenv(name) or "").strip()
+    if not raw:
+        return default_val
+    try:
+        return float(raw)
+    except Exception:
+        return default_val
+
+def _get_timeout(connect_default, read_default):
+    connect = _get_env_float("CP_HTTP_CONNECT_TIMEOUT", connect_default)
+    read = _get_env_float("CP_HTTP_READ_TIMEOUT", read_default)
+    if connect <= 0:
+        connect = connect_default
+    if read <= 0:
+        read = read_default
+    return (connect, read)
 
 class LoginManager:
     """
@@ -19,10 +49,27 @@ class LoginManager:
         self.config_manager = config_manager
         self.used_cached_token = False
 
+    def _post_with_retry(self, url, timeout, retries):
+        last_exc = None
+        for attempt in range(max(0, retries) + 1):
+            try:
+                return self.session.post(url, timeout=timeout)
+            except requests.RequestException as e:
+                last_exc = e
+                if attempt >= retries:
+                    raise
+                base = _get_env_float("CP_HTTP_RETRY_BACKOFF_SECONDS", 1.5)
+                sleep_seconds = (base * (2 ** attempt)) + random.random()
+                time.sleep(sleep_seconds)
+        if last_exc:
+            raise last_exc
+
     def _validate_token(self, token):
         url = f"{SCHOOL_CONFIG['BASE_URL']}/teachingWeek?token={token}"
         try:
-            resp = self.session.post(url, timeout=8)
+            timeout = _get_timeout(6, 8)
+            retries = _get_env_int("CP_HTTP_RETRIES", 0)
+            resp = self._post_with_retry(url, timeout=timeout, retries=retries)
             if resp.status_code >= 500:
                 return None
             data = resp.json()
@@ -89,7 +136,9 @@ class LoginManager:
 
         try:
             # 发送登录请求 (POST)
-            response = self.session.post(login_url, timeout=10)
+            timeout = _get_timeout(10, 15)
+            retries = _get_env_int("CP_HTTP_RETRIES", 2)
+            response = self._post_with_retry(login_url, timeout=timeout, retries=retries)
             response.raise_for_status()
             
             # 解析响应
