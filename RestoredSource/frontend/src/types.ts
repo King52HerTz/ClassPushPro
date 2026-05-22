@@ -13,13 +13,15 @@ export interface AppConfig {
   app_token: string;
   push_time: string;
   auto_start: boolean;
+  weather_enabled?: boolean;
+  weather_city?: string;
   grade_push_enabled?: boolean;
   grade_check_interval_minutes?: number;
   grade_check_start_time?: string;
   grade_check_end_time?: string;
   grade_push_initialized?: boolean;
   semester_start_date?: string;
-  time_slots?: Record<string, [string, string]>;
+  time_slots?: Record<string, [string, string]> | null;
   calendar_alarm_minutes?: number;
   last_push_success_time?: string;
   last_ignored_push_date?: string;
@@ -128,16 +130,12 @@ export interface LoginFormValues {
 export interface SettingsFormValues {
   push_time: import('dayjs').Dayjs;
   auto_start: boolean;
+  weather_enabled?: boolean;
+  weather_city?: string;
   grade_push_enabled?: boolean;
   grade_check_interval_minutes?: number;
   grade_check_start_time?: import('dayjs').Dayjs;
   grade_check_end_time?: import('dayjs').Dayjs;
   semester_start_date?: import('dayjs').Dayjs;
   calendar_alarm_minutes?: number;
-  time_slot_1_2?: string;
-  time_slot_3_4?: string;
-  time_slot_5_6?: string;
-  time_slot_7_8?: string;
-  time_slot_9_10?: string;
-  time_slot_11_12?: string;
 }

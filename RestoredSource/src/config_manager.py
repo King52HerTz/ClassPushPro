@@ -78,6 +78,11 @@ class ConfigManager:
                 "uid": self._decrypt(encrypted_data.get("uid", "")).strip(),
                 "push_time": encrypted_data.get("push_time", "07:00"),
                 "auto_start": encrypted_data.get("auto_start", False),
+                "weather_enabled": encrypted_data.get("weather_enabled", False),
+                "weather_city": str(encrypted_data.get("weather_city", "") or "").strip(),
+                "weather_credential_id": str(encrypted_data.get("weather_credential_id", "") or "").strip(),
+                "weather_api_host": str(encrypted_data.get("weather_api_host", "") or "").strip(),
+                "weather_api_key": self._decrypt(encrypted_data.get("weather_api_key", "")).strip(),
                 "grade_push_enabled": encrypted_data.get("grade_push_enabled", False),
                 "grade_check_interval_minutes": self._normalize_grade_check_interval_minutes(
                     encrypted_data.get("grade_check_interval_minutes", DEFAULT_GRADE_CHECK_INTERVAL_MINUTES)
@@ -127,6 +132,11 @@ class ConfigManager:
         semester_start_date="",
         time_slots=None,
         calendar_alarm_minutes=DEFAULT_CALENDAR_ALARM_MINUTES,
+        weather_enabled=None,
+        weather_city=None,
+        weather_credential_id=None,
+        weather_api_host=None,
+        weather_api_key=None,
         grade_push_enabled=None,
         grade_check_interval_minutes=None,
         grade_check_start_time=None,
@@ -142,6 +152,23 @@ class ConfigManager:
         jw_cached_cookies = self.config_data.get("jw_cached_cookies", {}) if keep_jw_cache else {}
         normalized_time_slots = self._normalize_time_slots(time_slots)
         normalized_alarm_minutes = self._normalize_calendar_alarm_minutes(calendar_alarm_minutes)
+        normalized_weather_enabled = self.config_data.get("weather_enabled", False) if weather_enabled is None else bool(weather_enabled)
+        normalized_weather_city = (
+            str(self.config_data.get("weather_city", "") or "").strip()
+            if weather_city is None else str(weather_city or "").strip()
+        )
+        normalized_weather_credential_id = (
+            str(self.config_data.get("weather_credential_id", "") or "").strip()
+            if weather_credential_id is None else str(weather_credential_id or "").strip()
+        )
+        normalized_weather_api_host = (
+            str(self.config_data.get("weather_api_host", "") or "").strip()
+            if weather_api_host is None else str(weather_api_host or "").strip()
+        )
+        normalized_weather_api_key = (
+            str(self.config_data.get("weather_api_key", "") or "").strip()
+            if weather_api_key is None else str(weather_api_key or "").strip()
+        )
         normalized_grade_push_enabled = self.config_data.get("grade_push_enabled", False) if grade_push_enabled is None else bool(grade_push_enabled)
         normalized_grade_check_interval = self._normalize_grade_check_interval_minutes(
             self.config_data.get("grade_check_interval_minutes", DEFAULT_GRADE_CHECK_INTERVAL_MINUTES)
@@ -180,6 +207,11 @@ class ConfigManager:
             "uid": self._encrypt(uid),
             "push_time": push_time,
             "auto_start": auto_start,
+            "weather_enabled": normalized_weather_enabled,
+            "weather_city": normalized_weather_city,
+            "weather_credential_id": normalized_weather_credential_id,
+            "weather_api_host": normalized_weather_api_host,
+            "weather_api_key": self._encrypt(normalized_weather_api_key),
             "grade_push_enabled": normalized_grade_push_enabled,
             "grade_check_interval_minutes": normalized_grade_check_interval,
             "grade_check_start_time": normalized_grade_check_start,
@@ -261,6 +293,11 @@ class ConfigManager:
             "uid": self._encrypt(self.config_data.get("uid", "")),
             "push_time": self.config_data.get("push_time", "07:00"),
             "auto_start": self.config_data.get("auto_start", False),
+            "weather_enabled": bool(self.config_data.get("weather_enabled", False)),
+            "weather_city": str(self.config_data.get("weather_city", "") or "").strip(),
+            "weather_credential_id": str(self.config_data.get("weather_credential_id", "") or "").strip(),
+            "weather_api_host": str(self.config_data.get("weather_api_host", "") or "").strip(),
+            "weather_api_key": self._encrypt(self.config_data.get("weather_api_key", "")),
             "grade_push_enabled": self.config_data.get("grade_push_enabled", False),
             "grade_check_interval_minutes": self._normalize_grade_check_interval_minutes(
                 self.config_data.get("grade_check_interval_minutes", DEFAULT_GRADE_CHECK_INTERVAL_MINUTES)
@@ -305,7 +342,7 @@ class ConfigManager:
         env_val = os.getenv(env_key)
         if env_val:
             # 只有 username, password, app_token, uid 这几个核心字段支持从环境变量读取
-            if key in ["username", "password", "app_token", "uid", "push_time"]:
+            if key in ["username", "password", "app_token", "uid", "push_time", "weather_api_key", "weather_api_host", "weather_credential_id"]:
                 return env_val
         
         # 2. 回退到读取本地配置

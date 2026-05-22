@@ -4,6 +4,7 @@ import sys
 import datetime
 from logger import logger
 from config_manager import ConfigManager
+from content_service import WeatherContentService
 from grade_service import GradeService
 from login_manager import LoginManager
 from real_scraper import CourseScraper
@@ -254,7 +255,16 @@ def run_push_task(force=False, source="auto"):
     logger.info(f"目标课程数: {len(target_courses)}")
     
     # 5. 生成推送内容
-    content, title = _generate_push_content(target_courses, target_date_str, target_xqmc, is_delayed, is_offline_mode)
+    weather_service = WeatherContentService(config)
+    weather_summary = weather_service.get_weather_content(target_date=target_date)
+    content, title = _generate_push_content(
+        target_courses,
+        target_date_str,
+        target_xqmc,
+        is_delayed,
+        is_offline_mode,
+        weather_summary=weather_summary,
+    )
     
     # 6. 推送
     pusher = Pusher(app_token)
@@ -341,7 +351,36 @@ def _are_all_courses_finished(courses):
             
     return True
 
-def _generate_push_content(courses, date_str, weekday_str, is_delayed=False, is_offline_mode=False):
+def _generate_weather_section(weather_summary):
+    if not weather_summary:
+        return ""
+
+    badge = "缓存" if weather_summary.get("is_cached") else "预报"
+    day_label = weather_summary.get("day_label", "")
+    location = weather_summary.get("location_label", "湖南工学院珠晖校区")
+    summary = weather_summary.get("summary", "")
+    extra_summary = weather_summary.get("extra_summary", "")
+    suggestion = weather_summary.get("suggestion", "")
+    fetched_at = weather_summary.get("fetched_at", "")
+    title = f"{day_label}天气预报" if day_label else "校园天气预报"
+    extra_html = f'<div class="weather-extra">{extra_summary}</div>' if extra_summary else ""
+
+    return f"""
+    <div class="weather-card">
+        <div class="weather-header">
+            <span class="weather-title">{title}</span>
+            <span class="weather-badge">{badge}</span>
+        </div>
+        <div class="weather-location">位置：{location}</div>
+        <div class="weather-summary">{summary}</div>
+        {extra_html}
+        <div class="weather-suggestion">出门建议：{suggestion}</div>
+        <div class="weather-time">更新时间：{fetched_at}</div>
+    </div>
+    """
+
+
+def _generate_push_content(courses, date_str, weekday_str, is_delayed=False, is_offline_mode=False, weather_summary=None):
     """
     生成精美 HTML 推送内容
     """
@@ -369,6 +408,15 @@ def _generate_push_content(courses, date_str, weekday_str, is_delayed=False, is_
         .warning { background: #fffbe6; border: 1px solid #ffe58f; color: #d48806; padding: 10px; border-radius: 4px; font-size: 13px; margin-top: 20px; }
         .delayed-badge { background: #fff1f0; border: 1px solid #ffa39e; color: #cf1322; padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-left: 10px; vertical-align: middle; }
         .offline-badge { background: #fff7e6; border: 1px solid #ffd591; color: #d46b08; padding: 2px 6px; border-radius: 4px; font-size: 12px; margin-left: 10px; vertical-align: middle; }
+        .weather-card { background: #f6ffed; border: 1px solid #b7eb8f; border-radius: 8px; padding: 14px 16px; margin: 18px 0; }
+        .weather-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .weather-title { font-size: 15px; font-weight: bold; color: #389e0d; }
+        .weather-badge { font-size: 12px; color: #237804; background: #d9f7be; padding: 2px 8px; border-radius: 999px; }
+        .weather-location { font-size: 13px; color: #237804; margin-bottom: 4px; }
+        .weather-summary { font-size: 14px; color: #135200; }
+        .weather-extra { font-size: 12px; color: #528c34; margin-top: 6px; }
+        .weather-suggestion { font-size: 13px; color: #237804; margin-top: 8px; }
+        .weather-time { font-size: 12px; color: #528c34; margin-top: 6px; }
     </style>
     """
     
@@ -383,6 +431,7 @@ def _generate_push_content(courses, date_str, weekday_str, is_delayed=False, is_
 
     offline_html = "<span class='offline-badge'>离线模式</span>" if is_offline_mode else ""
     offline_text = "[离线] " if is_offline_mode else ""
+    weather_html = _generate_weather_section(weather_summary)
 
     if not courses:
         summary_title = f"{offline_text}小主，{day_label}全天没课，好好休息吧 🛌"
@@ -401,6 +450,7 @@ def _generate_push_content(courses, date_str, weekday_str, is_delayed=False, is_
             <div class="relax-text">自由时光，做点喜欢的事吧~</div>
             <div class="wish-text">祝你有美好的一天 ✨</div>
         </div>
+        {weather_html}
         """
     else:
         course_count = len(courses)
@@ -422,6 +472,7 @@ def _generate_push_content(courses, date_str, weekday_str, is_delayed=False, is_
         <div class="date-badge">
             <span class="date-icon">🗓️</span>{date_str} {weekday_str}
         </div>
+        {weather_html}
         """
         
         courses.sort(key=lambda x: x.get("classTime", ""))

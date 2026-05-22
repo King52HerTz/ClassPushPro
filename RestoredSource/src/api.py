@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from logger import logger
 from calendar_exporter import CalendarExporter
 from config_manager import ConfigManager
+from content_service import WeatherContentService
 from grade_service import GradeService
 from login_manager import LoginManager
 from real_scraper import CourseScraper
@@ -24,6 +25,7 @@ class Api:
     def __init__(self):
         self.config = ConfigManager()
         self.grade_service = GradeService(self.config)
+        self.weather_service = WeatherContentService(self.config)
 
     def _looks_like_network_error(self, message):
         text = str(message or "")
@@ -133,6 +135,11 @@ class Api:
             uid = data.get("uid")
             push_time = data.get("push_time", "07:00")
             auto_start = data.get("auto_start", False)
+            weather_enabled = data.get("weather_enabled", False)
+            weather_city = data.get("weather_city", "")
+            weather_credential_id = data.get("weather_credential_id", "")
+            weather_api_host = data.get("weather_api_host", "")
+            weather_api_key = data.get("weather_api_key", "")
             grade_push_enabled = data.get("grade_push_enabled", False)
             grade_check_interval_minutes = data.get("grade_check_interval_minutes", 30)
             grade_check_start_time = data.get("grade_check_start_time", "07:00")
@@ -151,6 +158,11 @@ class Api:
                 semester_start_date,
                 time_slots,
                 calendar_alarm_minutes,
+                weather_enabled=weather_enabled,
+                weather_city=weather_city,
+                weather_credential_id=weather_credential_id,
+                weather_api_host=weather_api_host,
+                weather_api_key=weather_api_key,
                 grade_push_enabled=grade_push_enabled,
                 grade_check_interval_minutes=grade_check_interval_minutes,
                 grade_check_start_time=grade_check_start_time,
@@ -422,6 +434,11 @@ class Api:
                 current_config.get("semester_start_date", ""),
                 current_config.get("time_slots"),
                 current_config.get("calendar_alarm_minutes", 15),
+                weather_enabled=current_config.get("weather_enabled", False),
+                weather_city=current_config.get("weather_city", ""),
+                weather_credential_id=current_config.get("weather_credential_id", ""),
+                weather_api_host=current_config.get("weather_api_host", ""),
+                weather_api_key=current_config.get("weather_api_key", ""),
                 grade_push_enabled=current_config.get("grade_push_enabled", False),
                 grade_check_interval_minutes=current_config.get("grade_check_interval_minutes", 30),
                 grade_check_start_time=current_config.get("grade_check_start_time", "07:00"),
