@@ -1,19 +1,108 @@
 import json
 import threading
 import re
+import os
+from datetime import datetime, timedelta
 from logger import logger
+from calendar_exporter import CalendarExporter
 from config_manager import ConfigManager
 from grade_service import GradeService
 from login_manager import LoginManager
 from real_scraper import CourseScraper
 from run_job import run_push_task
 from autostart import set_autostart, check_autostart
-from scheduler import create_schedule_task, delete_schedule_task, check_task_status
+from scheduler import (
+    create_grade_schedule_task,
+    create_schedule_task,
+    delete_grade_schedule_task,
+    delete_schedule_task,
+    check_grade_task_status,
+    check_task_status,
+)
 
 class Api:
     def __init__(self):
         self.config = ConfigManager()
         self.grade_service = GradeService(self.config)
+
+    def _looks_like_network_error(self, message):
+        text = str(message or "")
+        keywords = [
+            "网络请求异常",
+            "NameResolutionError",
+            "getaddrinfo failed",
+            "连接",
+            "超时",
+            "timeout",
+        ]
+        return any(keyword in text for keyword in keywords)
+
+    def _sync_schedule_tasks(self):
+        warning_messages = []
+
+        delete_schedule_task()
+        push_time = self.config.get("push_time", "07:00")
+        course_success, course_msg = create_schedule_task(push_time)
+        if not course_success:
+            logger.error(f"课表计划任务创建失败: {course_msg}")
+            warning_messages.append(f"课表任务创建失败 - {course_msg}")
+
+        delete_grade_schedule_task()
+        if self.config.get("grade_push_enabled", False):
+            grade_success, grade_msg = create_grade_schedule_task(
+                self.config.get("grade_check_start_time", "07:00"),
+                self.config.get("grade_check_interval_minutes", 30),
+                self.config.get("grade_check_end_time", "23:00"),
+            )
+            if not grade_success:
+                logger.error(f"成绩计划任务创建失败: {grade_msg}")
+                warning_messages.append(f"成绩任务创建失败 - {grade_msg}")
+
+        return warning_messages
+
+    def _safe_week_number(self, value):
+        try:
+            return max(int(value), 1)
+        except (TypeError, ValueError):
+            return 1
+
+    def _parse_semester_start_date(self, value):
+        text = str(value or "").strip()
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", text):
+            return None
+        try:
+            return datetime.strptime(text, "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+    def _resolve_export_constraints(self, scope, current_week, semester_start_date):
+        current_week_num = self._safe_week_number(current_week)
+        normalized_scope = str(scope or "term").strip().lower()
+
+        if normalized_scope == "current_week":
+            return {
+                "scope": "current_week",
+                "scope_label": "本周",
+                "allowed_weeks": {current_week_num},
+                "date_range": None,
+            }
+
+        if normalized_scope == "next_7_days":
+            today = datetime.now().date()
+            range_end = today + timedelta(days=6)
+            return {
+                "scope": "next_7_days",
+                "scope_label": "未来 7 天",
+                "allowed_weeks": None,
+                "date_range": (today, range_end),
+            }
+
+        return {
+            "scope": "term",
+            "scope_label": "全学期",
+            "allowed_weeks": None,
+            "date_range": None,
+        }
 
     def ignore_missed_push(self, date_str):
         """标记某天的补发提醒为已忽略 (YYYY-MM-DD)"""
@@ -44,9 +133,28 @@ class Api:
             uid = data.get("uid")
             push_time = data.get("push_time", "07:00")
             auto_start = data.get("auto_start", False)
+            grade_push_enabled = data.get("grade_push_enabled", False)
+            grade_check_interval_minutes = data.get("grade_check_interval_minutes", 30)
+            grade_check_start_time = data.get("grade_check_start_time", "07:00")
+            grade_check_end_time = data.get("grade_check_end_time", "23:00")
+            semester_start_date = data.get("semester_start_date", "")
+            time_slots = data.get("time_slots")
+            calendar_alarm_minutes = data.get("calendar_alarm_minutes", 15)
             
             success = self.config.save_config(
-                username, password, app_token, uid, push_time, auto_start
+                username,
+                password,
+                app_token,
+                uid,
+                push_time,
+                auto_start,
+                semester_start_date,
+                time_slots,
+                calendar_alarm_minutes,
+                grade_push_enabled=grade_push_enabled,
+                grade_check_interval_minutes=grade_check_interval_minutes,
+                grade_check_start_time=grade_check_start_time,
+                grade_check_end_time=grade_check_end_time,
             )
             
             # 更新自启动
@@ -55,11 +163,9 @@ class Api:
             # 更新计划任务
             warning_msg = ""
             if success:
-                delete_schedule_task()
-                task_success, task_msg = create_schedule_task(push_time)
-                if not task_success:
-                    logger.error(f"计划任务创建失败: {task_msg}")
-                    warning_msg = f" (注意: 自动推送任务创建失败 - {task_msg})"
+                warning_messages = self._sync_schedule_tasks()
+                if warning_messages:
+                    warning_msg = " (注意: " + "；".join(warning_messages) + ")"
             
             return {
                 "status": "success" if success else "error", 
@@ -132,10 +238,71 @@ class Api:
                     "source": "offline",
                     "update_time_str": time_str
                 },
-                "message": f"网络连接失败，已加载缓存数据 ({time_str})"
+                "message": f"网络不可用，正在显示{time_str}的本地课表缓存"
             }
-            
-        return {"status": "error", "message": f"获取失败: {msg} 且无本地缓存"}
+
+        if self._looks_like_network_error(msg):
+            return {"status": "error", "message": "当前暂无本地课表缓存，请联网后首次加载"}
+        return {"status": "error", "message": f"获取失败: {msg}"}
+
+    def export_calendar_ics(self, scope="term"):
+        """导出当前课表为 ICS 文件"""
+        try:
+            cached_data = self.config.get_cached_courses()
+            if not cached_data:
+                preview_result = self.get_preview_courses()
+                if preview_result.get("status") != "success":
+                    return {"status": "error", "message": preview_result.get("message", "课表数据不可用")}
+                cached_data = {
+                    "current_week": preview_result.get("data", {}).get("currentWeek", "1"),
+                    "courses": preview_result.get("data", {}).get("courses", []),
+                }
+
+            courses = cached_data.get("courses", [])
+            current_week = cached_data.get("current_week", "1")
+            if not courses:
+                return {"status": "error", "message": "暂无可导出的课表数据"}
+
+            semester_start_date = self.config.get("semester_start_date", "")
+            time_slots = self.config.get("time_slots", {})
+            calendar_alarm_minutes = self.config.get("calendar_alarm_minutes", 15)
+            export_constraints = self._resolve_export_constraints(scope, current_week, semester_start_date)
+            exporter = CalendarExporter(
+                semester_start_date,
+                time_slots,
+                courses,
+                current_week=current_week,
+                alarm_minutes=calendar_alarm_minutes,
+                allowed_weeks=export_constraints["allowed_weeks"],
+                date_range=export_constraints["date_range"],
+            )
+
+            export_dir = os.path.join(os.path.expanduser("~"), "Downloads", "ClassPush")
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            scope_suffix = export_constraints["scope"]
+            file_path = os.path.join(export_dir, f"classpush_schedule_{scope_suffix}_{timestamp}.ics")
+            exporter.export_to_file(file_path)
+
+            if exporter.exported_event_count <= 0:
+                return {
+                    "status": "error",
+                    "message": f"{export_constraints['scope_label']}内没有可导出的课程，请换一个范围再试",
+                }
+
+            return {
+                "status": "success",
+                "message": "导出成功",
+                "data": {
+                    "file_path": file_path,
+                    "file_name": os.path.basename(file_path),
+                    "course_count": exporter.exported_event_count,
+                    "export_scope": export_constraints["scope"],
+                    "export_scope_label": export_constraints["scope_label"],
+                },
+            }
+        except Exception as e:
+            logger.exception("导出 ICS 失败")
+            return {"status": "error", "message": f"导出 ICS 失败: {e}"}
 
     def get_grade_semesters(self):
         """获取成绩学期列表"""
@@ -169,7 +336,11 @@ class Api:
         try:
             result = self.grade_service.check_new_grades()
             new_count = len(result.get("new_items", []))
-            message = f"检查完成，发现 {new_count} 条新增成绩"
+            push_message = result.get("push_result", {}).get("message", "")
+            if new_count > 0:
+                message = f"检查完成，发现 {new_count} 条新增成绩"
+            else:
+                message = push_message or "检查完成，当前没有新增成绩"
             return {"status": "success", "data": result, "message": message}
         except Exception as e:
             logger.exception("检查新成绩失败")
@@ -178,10 +349,22 @@ class Api:
     def save_grade_push_settings(self, enable):
         """保存成绩自动推送开关"""
         try:
-            success = self.grade_service.save_grade_push_settings(enable)
+            success = self.grade_service.save_grade_push_settings(enable=enable)
+            warning_msg = ""
+            if success:
+                if enable:
+                    task_success, task_msg = create_grade_schedule_task(
+                        self.config.get("grade_check_start_time", "07:00"),
+                        self.config.get("grade_check_interval_minutes", 30),
+                        self.config.get("grade_check_end_time", "23:00"),
+                    )
+                    if not task_success:
+                        warning_msg = f" (注意: 成绩任务创建失败 - {task_msg})"
+                else:
+                    delete_grade_schedule_task()
             return {
                 "status": "success" if success else "error",
-                "message": "保存成功" if success else "保存失败",
+                "message": ("保存成功" + warning_msg) if success else "保存失败",
             }
         except Exception as e:
             logger.exception("保存成绩推送设置失败")
@@ -235,7 +418,15 @@ class Api:
                 current_config.get("app_token", ""),
                 current_config.get("uid", ""),
                 current_config.get("push_time", "07:00"),
-                enable
+                enable,
+                current_config.get("semester_start_date", ""),
+                current_config.get("time_slots"),
+                current_config.get("calendar_alarm_minutes", 15),
+                grade_push_enabled=current_config.get("grade_push_enabled", False),
+                grade_check_interval_minutes=current_config.get("grade_check_interval_minutes", 30),
+                grade_check_start_time=current_config.get("grade_check_start_time", "07:00"),
+                grade_check_end_time=current_config.get("grade_check_end_time", "23:00"),
+                grade_push_initialized=current_config.get("grade_push_initialized", False),
             )
             return {"status": "success" if success else "error", "message": msg}
         except Exception as e:
@@ -245,21 +436,16 @@ class Api:
         """开启或停止自动推送"""
         try:
             if enable:
-                push_time = self.config.get("push_time", "07:00")
-                delete_schedule_task() # 先删除旧的
-                success, msg = create_schedule_task(push_time)
-                if success:
-                    return {"status": "success", "message": "自动推送已开启"}
-                else:
-                    return {"status": "error", "message": f"开启失败: {msg}"}
+                warning_messages = self._sync_schedule_tasks()
+                if warning_messages:
+                    return {"status": "error", "message": "开启失败: " + "；".join(warning_messages)}
+                return {"status": "success", "message": "自动推送已开启"}
             else:
-                if delete_schedule_task():
+                delete_schedule_task()
+                delete_grade_schedule_task()
+                if not check_task_status() and not check_grade_task_status():
                     return {"status": "success", "message": "自动推送已停止"}
-                else:
-                    # 如果任务本来就不存在，也算成功
-                    if not check_task_status():
-                        return {"status": "success", "message": "自动推送已停止"}
-                    return {"status": "error", "message": "停止失败"}
+                return {"status": "error", "message": "停止失败"}
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
@@ -269,6 +455,7 @@ class Api:
             "status": "success",
             "data": {
                 "autostart": check_autostart(),
-                "scheduler_active": check_task_status()
+                "scheduler_active": check_task_status(),
+                "grade_scheduler_active": check_grade_task_status(),
             }
         }

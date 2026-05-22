@@ -47,21 +47,44 @@ class GradeService:
             scraper = self._create_scraper()
             current_term = scraper.get_current_term()
             semester_list = scraper.get_semester_list()
+            selected_semester = self._resolve_selected_semester(None, current_term, semester_list)
+            term_data = scraper.get_term_grades(
+                selected_semester["semester_id"],
+                selected_semester["semester_name"],
+            )
 
             cache_data = self.load_grade_cache()
             cache_data["current_term"] = current_term
             cache_data["semester_list"] = semester_list
             cache_data["last_check_time"] = self._now_str()
+            self._upsert_semester_snapshot(cache_data, term_data)
             self.save_grade_cache(cache_data)
 
             return {
                 "current_term": current_term,
                 "semester_list": semester_list,
+                "selected_semester": {
+                    "semester_id": term_data["semester_id"],
+                    "semester_name": term_data["semester_name"],
+                },
+                "student_info": term_data.get("student_info", {}),
+                "summary": term_data.get("summary", {}),
+                "grades": term_data.get("grades", []),
                 "source": "online",
+                "update_time_str": "刚刚",
             }
         except Exception as e:
             logger.warning(f"在线获取成绩学期失败，尝试读取缓存: {e}")
             cache_data = self.load_grade_cache()
+            cached_response = self._build_response_from_cache(cache_data, None)
+            if cached_response:
+                cached_response["source"] = "offline"
+                cached_response["update_time_str"] = self._resolve_cached_update_time(
+                    cache_data,
+                    cached_response.get("selected_semester", {}).get("semester_id", ""),
+                )
+                return cached_response
+
             semester_list = self._get_effective_semester_list(cache_data)
             current_term = cache_data.get("current_term", {})
             if semester_list:
@@ -69,6 +92,7 @@ class GradeService:
                     "current_term": current_term,
                     "semester_list": semester_list,
                     "source": "offline",
+                    "update_time_str": self._format_relative_time(cache_data.get("last_check_time", "")),
                 }
             raise
 
@@ -81,6 +105,7 @@ class GradeService:
             cached_response = self._build_response_from_cache(cache_data, semester_id)
             if cached_response:
                 cached_response["source"] = "offline"
+                cached_response["update_time_str"] = self._resolve_cached_update_time(cache_data, semester_id)
                 return cached_response
             raise
 
@@ -112,6 +137,7 @@ class GradeService:
             "summary": term_data.get("summary", {}),
             "grades": term_data.get("grades", []),
             "source": "online",
+            "update_time_str": "刚刚",
         }
 
     def refresh_all_grades(self):
@@ -200,6 +226,25 @@ class GradeService:
         }
 
         should_push = self.config.get("grade_push_enabled", False) if push_enabled is None else bool(push_enabled)
+        should_initialize_baseline = should_push and (
+            not bool(self.config.get("grade_push_initialized", False)) or not self._has_grade_baseline(old_cache)
+        )
+        if should_initialize_baseline:
+            self.save_grade_cache(updated_cache)
+            self.config.update_grade_push_initialized(True)
+            push_result = {
+                "attempted": True,
+                "success": True,
+                "message": "首次启用已建立成绩基线，历史成绩不会推送",
+            }
+            return {
+                "current_term": current_term,
+                "checked_semester": selected_semester,
+                "new_items": [],
+                "updated_items": updated_items,
+                "push_result": push_result,
+            }
+
         if should_push and new_items:
             push_success, push_message = self._push_new_grades(new_items)
             push_result = {
@@ -231,32 +276,47 @@ class GradeService:
 
         if count == 1:
             only = items[0]
-            summary = f"你有 1 门新成绩已发布：{only.get('course_name') or '未知课程'} {only.get('score') or '待公布'}"
+            summary = f"🎉 小主，新成绩发布啦：{only.get('course_name') or '未知课程'} {only.get('score') or '待公布'}"
         else:
-            summary = f"你有 {count} 门新成绩已发布，点击查看详情"
+            summary = f"🎉 小主，你有 {count} 门新成绩已发布，快来看看"
 
         lines = [
             f"# {summary}",
             "",
-            f"- 检测时间：{self._now_str()}",
+            "> 检测到当前学期有新的成绩更新，明细如下：",
             "",
+            f"> **检测时间**：{self._now_str()}",
+            "",
+            "---",
+            ""
         ]
 
         for item in items:
+            course_name = item.get('course_name') or '未知课程'
+            score = item.get('score') or '待公布'
+            
+            # 使用表情增加可读性
             lines.extend([
-                f"## {item.get('course_name') or '未知课程'}",
-                f"- 学期：{item.get('semester_name') or item.get('semester_id') or '未知'}",
-                f"- 分数：{item.get('score') or '待公布'}",
-                f"- 学分：{item.get('credit') or '未知'}",
-                f"- 绩点：{item.get('gpa') or '未知'}",
-                f"- 考核：{item.get('exam_name') or '未知'} / {item.get('examination_nature') or '未知'}",
+                f"### 📖 {course_name}",
+                f"- **分数**：`{score}`",
+                f"- **绩点**：{item.get('gpa') or '--'}",
+                f"- **学分**：{item.get('credit') or '--'}",
+                f"- **学期**：{item.get('semester_name') or item.get('semester_id') or '--'}",
+                f"- **考核**：{item.get('exam_name') or '--'} ({item.get('examination_nature') or '--'})",
                 "",
+                "---",
+                ""
             ])
 
         return "\n".join(lines).strip(), summary
 
-    def save_grade_push_settings(self, enable):
-        return self.config.update_grade_push_enabled(bool(enable))
+    def save_grade_push_settings(self, enable=None, interval_minutes=None, start_time=None, end_time=None):
+        return self.config.update_grade_push_settings(
+            enabled=enable,
+            interval_minutes=interval_minutes,
+            start_time=start_time,
+            end_time=end_time,
+        )
 
     def _create_scraper(self):
         username = self.config.get("username")
@@ -331,6 +391,40 @@ class GradeService:
 
     def _now_str(self):
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    def _format_relative_time(self, time_str):
+        text = str(time_str or "").strip()
+        if not text:
+            return ""
+        try:
+            source_time = datetime.strptime(text, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            return ""
+
+        seconds = max(int((datetime.now() - source_time).total_seconds()), 0)
+        if seconds < 60:
+            return "刚刚"
+        if seconds < 3600:
+            return f"{seconds // 60}分钟前"
+        if seconds < 86400:
+            return f"{seconds // 3600}小时前"
+        return f"{seconds // 86400}天前"
+
+    def _resolve_cached_update_time(self, cache_data, semester_id):
+        target_id = str(semester_id or "").strip()
+        if target_id:
+            for semester in cache_data.get("semesters", []):
+                if semester.get("semester_id") == target_id:
+                    return self._format_relative_time(semester.get("update_time", ""))
+
+        current_term = cache_data.get("current_term", {})
+        current_term_id = current_term.get("semester_id", "") if isinstance(current_term, dict) else ""
+        if current_term_id:
+            for semester in cache_data.get("semesters", []):
+                if semester.get("semester_id") == current_term_id:
+                    return self._format_relative_time(semester.get("update_time", ""))
+
+        return self._format_relative_time(cache_data.get("last_check_time", ""))
 
     def _resolve_selected_semester(self, semester_id, current_term, semester_list):
         semester_list = semester_list if isinstance(semester_list, list) else []
@@ -440,6 +534,10 @@ class GradeService:
                 x.get("grade_id", ""),
             ),
         )
+
+    def _has_grade_baseline(self, cache_data):
+        cache = self._normalize_cache_shape(cache_data)
+        return bool(cache.get("semesters")) and bool(cache.get("last_check_time"))
 
     def _push_new_grades(self, new_items):
         app_token = self.config.get("app_token")

@@ -1,6 +1,7 @@
 import json
 import os
 import base64
+import re
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from logger import logger
@@ -9,6 +10,20 @@ CONFIG_FILE = "config.json"
 # 使用一个本地固定的密钥用于加密配置文件
 # 注意：这只是为了防止明文存储，并不是极高强度的安全方案
 LOCAL_KEY = b'ClassPushConfigK'  # 16 bytes key
+
+DEFAULT_TIME_SLOTS = {
+    "1-2": ["08:30", "10:05"],
+    "3-4": ["10:25", "12:00"],
+    "5-6": ["14:00", "15:35"],
+    "7-8": ["15:55", "17:30"],
+    "9-10": ["19:00", "20:35"],
+    "11-12": ["20:45", "22:20"],
+}
+
+DEFAULT_CALENDAR_ALARM_MINUTES = 15
+DEFAULT_GRADE_CHECK_INTERVAL_MINUTES = 30
+DEFAULT_GRADE_CHECK_START_TIME = "07:00"
+DEFAULT_GRADE_CHECK_END_TIME = "23:00"
 
 class ConfigManager:
     """
@@ -64,6 +79,23 @@ class ConfigManager:
                 "push_time": encrypted_data.get("push_time", "07:00"),
                 "auto_start": encrypted_data.get("auto_start", False),
                 "grade_push_enabled": encrypted_data.get("grade_push_enabled", False),
+                "grade_check_interval_minutes": self._normalize_grade_check_interval_minutes(
+                    encrypted_data.get("grade_check_interval_minutes", DEFAULT_GRADE_CHECK_INTERVAL_MINUTES)
+                ),
+                "grade_check_start_time": self._normalize_clock_time(
+                    encrypted_data.get("grade_check_start_time", DEFAULT_GRADE_CHECK_START_TIME),
+                    DEFAULT_GRADE_CHECK_START_TIME,
+                ),
+                "grade_check_end_time": self._normalize_clock_time(
+                    encrypted_data.get("grade_check_end_time", DEFAULT_GRADE_CHECK_END_TIME),
+                    DEFAULT_GRADE_CHECK_END_TIME,
+                ),
+                "grade_push_initialized": bool(encrypted_data.get("grade_push_initialized", False)),
+                "semester_start_date": encrypted_data.get("semester_start_date", ""),
+                "time_slots": self._normalize_time_slots(encrypted_data.get("time_slots")),
+                "calendar_alarm_minutes": self._normalize_calendar_alarm_minutes(
+                    encrypted_data.get("calendar_alarm_minutes", DEFAULT_CALENDAR_ALARM_MINUTES)
+                ),
                 "last_push_success_time": encrypted_data.get("last_push_success_time", ""),
                 "last_auto_push_success_time": encrypted_data.get("last_auto_push_success_time", ""),
                 "last_manual_push_success_time": encrypted_data.get("last_manual_push_success_time", ""),
@@ -84,7 +116,23 @@ class ConfigManager:
             logger.exception("配置文件加载失败")
             self.config_data = {}
 
-    def save_config(self, username, password, app_token, uid, push_time, auto_start):
+    def save_config(
+        self,
+        username,
+        password,
+        app_token,
+        uid,
+        push_time,
+        auto_start,
+        semester_start_date="",
+        time_slots=None,
+        calendar_alarm_minutes=DEFAULT_CALENDAR_ALARM_MINUTES,
+        grade_push_enabled=None,
+        grade_check_interval_minutes=None,
+        grade_check_start_time=None,
+        grade_check_end_time=None,
+        grade_push_initialized=None,
+    ):
         old_username = self.config_data.get("username", "")
         old_password = self.config_data.get("password", "")
         keep_jw_cache = isinstance(username, str) and isinstance(password, str) and (username == old_username) and (password == old_password)
@@ -92,6 +140,27 @@ class ConfigManager:
         jw_cached_token = self.config_data.get("jw_cached_token", "") if keep_jw_cache else ""
         jw_cached_time = self.config_data.get("jw_cached_time", "") if keep_jw_cache else ""
         jw_cached_cookies = self.config_data.get("jw_cached_cookies", {}) if keep_jw_cache else {}
+        normalized_time_slots = self._normalize_time_slots(time_slots)
+        normalized_alarm_minutes = self._normalize_calendar_alarm_minutes(calendar_alarm_minutes)
+        normalized_grade_push_enabled = self.config_data.get("grade_push_enabled", False) if grade_push_enabled is None else bool(grade_push_enabled)
+        normalized_grade_check_interval = self._normalize_grade_check_interval_minutes(
+            self.config_data.get("grade_check_interval_minutes", DEFAULT_GRADE_CHECK_INTERVAL_MINUTES)
+            if grade_check_interval_minutes is None else grade_check_interval_minutes
+        )
+        normalized_grade_check_start = self._normalize_clock_time(
+            self.config_data.get("grade_check_start_time", DEFAULT_GRADE_CHECK_START_TIME)
+            if grade_check_start_time is None else grade_check_start_time,
+            DEFAULT_GRADE_CHECK_START_TIME,
+        )
+        normalized_grade_check_end = self._normalize_clock_time(
+            self.config_data.get("grade_check_end_time", DEFAULT_GRADE_CHECK_END_TIME)
+            if grade_check_end_time is None else grade_check_end_time,
+            DEFAULT_GRADE_CHECK_END_TIME,
+        )
+        normalized_grade_push_initialized = (
+            bool(self.config_data.get("grade_push_initialized", False))
+            if grade_push_initialized is None else bool(grade_push_initialized)
+        )
 
         # 强制兜底：如果前端传了空 Token，且配置文件中没有有效 Token，则自动补上默认的那个真实 Token
         # 这解决了前端界面隐藏 Token 后，保存时把空字符串传过来覆盖掉正确 Token 的问题
@@ -111,7 +180,14 @@ class ConfigManager:
             "uid": self._encrypt(uid),
             "push_time": push_time,
             "auto_start": auto_start,
-            "grade_push_enabled": self.config_data.get("grade_push_enabled", False),
+            "grade_push_enabled": normalized_grade_push_enabled,
+            "grade_check_interval_minutes": normalized_grade_check_interval,
+            "grade_check_start_time": normalized_grade_check_start,
+            "grade_check_end_time": normalized_grade_check_end,
+            "grade_push_initialized": normalized_grade_push_initialized,
+            "semester_start_date": str(semester_start_date or "").strip(),
+            "time_slots": normalized_time_slots,
+            "calendar_alarm_minutes": normalized_alarm_minutes,
             "last_push_success_time": self.config_data.get("last_push_success_time", ""),
             "last_auto_push_success_time": self.config_data.get("last_auto_push_success_time", ""),
             "last_manual_push_success_time": self.config_data.get("last_manual_push_success_time", ""),
@@ -119,7 +195,8 @@ class ConfigManager:
             "jw_cached_username": jw_cached_username,
             "jw_cached_token": self._encrypt(jw_cached_token),
             "jw_cached_time": jw_cached_time,
-            "jw_cached_cookies": self._encrypt(json.dumps(jw_cached_cookies or {}, ensure_ascii=False))
+            "jw_cached_cookies": self._encrypt(json.dumps(jw_cached_cookies or {}, ensure_ascii=False)),
+            "cached_courses_data": self.config_data.get("cached_courses_data", ""),
         }
         
         try:
@@ -160,6 +237,21 @@ class ConfigManager:
         self.config_data["grade_push_enabled"] = bool(enabled)
         return self._save_current_config()
 
+    def update_grade_push_settings(self, enabled=None, interval_minutes=None, start_time=None, end_time=None):
+        if enabled is not None:
+            self.config_data["grade_push_enabled"] = bool(enabled)
+        if interval_minutes is not None:
+            self.config_data["grade_check_interval_minutes"] = self._normalize_grade_check_interval_minutes(interval_minutes)
+        if start_time is not None:
+            self.config_data["grade_check_start_time"] = self._normalize_clock_time(start_time, DEFAULT_GRADE_CHECK_START_TIME)
+        if end_time is not None:
+            self.config_data["grade_check_end_time"] = self._normalize_clock_time(end_time, DEFAULT_GRADE_CHECK_END_TIME)
+        return self._save_current_config()
+
+    def update_grade_push_initialized(self, initialized):
+        self.config_data["grade_push_initialized"] = bool(initialized)
+        return self._save_current_config()
+
     def _save_current_config(self):
         """保存当前内存中的配置到文件"""
         encrypted_data = {
@@ -170,6 +262,23 @@ class ConfigManager:
             "push_time": self.config_data.get("push_time", "07:00"),
             "auto_start": self.config_data.get("auto_start", False),
             "grade_push_enabled": self.config_data.get("grade_push_enabled", False),
+            "grade_check_interval_minutes": self._normalize_grade_check_interval_minutes(
+                self.config_data.get("grade_check_interval_minutes", DEFAULT_GRADE_CHECK_INTERVAL_MINUTES)
+            ),
+            "grade_check_start_time": self._normalize_clock_time(
+                self.config_data.get("grade_check_start_time", DEFAULT_GRADE_CHECK_START_TIME),
+                DEFAULT_GRADE_CHECK_START_TIME,
+            ),
+            "grade_check_end_time": self._normalize_clock_time(
+                self.config_data.get("grade_check_end_time", DEFAULT_GRADE_CHECK_END_TIME),
+                DEFAULT_GRADE_CHECK_END_TIME,
+            ),
+            "grade_push_initialized": bool(self.config_data.get("grade_push_initialized", False)),
+            "semester_start_date": self.config_data.get("semester_start_date", ""),
+            "time_slots": self._normalize_time_slots(self.config_data.get("time_slots")),
+            "calendar_alarm_minutes": self._normalize_calendar_alarm_minutes(
+                self.config_data.get("calendar_alarm_minutes", DEFAULT_CALENDAR_ALARM_MINUTES)
+            ),
             "last_push_success_time": self.config_data.get("last_push_success_time", ""),
             "last_auto_push_success_time": self.config_data.get("last_auto_push_success_time", ""),
             "last_manual_push_success_time": self.config_data.get("last_manual_push_success_time", ""),
@@ -201,6 +310,61 @@ class ConfigManager:
         
         # 2. 回退到读取本地配置
         return self.config_data.get(key, default)
+
+    def _normalize_time_slots(self, raw_time_slots=None):
+        normalized = {}
+        source = raw_time_slots if isinstance(raw_time_slots, dict) else {}
+
+        for slot_key, default_value in DEFAULT_TIME_SLOTS.items():
+            candidate = source.get(slot_key, default_value)
+            if isinstance(candidate, (list, tuple)) and len(candidate) >= 2:
+                start_time = str(candidate[0] or "").strip() or default_value[0]
+                end_time = str(candidate[1] or "").strip() or default_value[1]
+            else:
+                start_time, end_time = default_value
+            normalized[slot_key] = [start_time, end_time]
+
+        for slot_key, candidate in source.items():
+            if slot_key in normalized:
+                continue
+            if isinstance(candidate, (list, tuple)) and len(candidate) >= 2:
+                normalized[str(slot_key)] = [
+                    str(candidate[0] or "").strip(),
+                    str(candidate[1] or "").strip(),
+                ]
+
+        return normalized
+
+    def _normalize_calendar_alarm_minutes(self, value):
+        try:
+            minutes = int(value)
+        except (TypeError, ValueError):
+            return DEFAULT_CALENDAR_ALARM_MINUTES
+
+        if minutes < 0:
+            return 0
+        if minutes > 24 * 60:
+            return 24 * 60
+        return minutes
+
+    def _normalize_grade_check_interval_minutes(self, value):
+        try:
+            minutes = int(value)
+        except (TypeError, ValueError):
+            return DEFAULT_GRADE_CHECK_INTERVAL_MINUTES
+
+        if minutes <= 0:
+            return DEFAULT_GRADE_CHECK_INTERVAL_MINUTES
+        return minutes
+
+    def _normalize_clock_time(self, value, fallback):
+        text = str(value or "").strip()
+        if not re.match(r"^\d{2}:\d{2}$", text):
+            return fallback
+        hour, minute = map(int, text.split(":"))
+        if hour < 0 or hour > 23 or minute < 0 or minute > 59:
+            return fallback
+        return f"{hour:02d}:{minute:02d}"
 
     def update_jw_cached_token(self, username, token, time_str, cookies_dict=None):
         if not isinstance(username, str) or not username:

@@ -34,6 +34,20 @@ def _get_timeout(connect_default, read_default):
         read = read_default
     return (connect, read)
 
+def _should_fail_fast(exc):
+    if isinstance(exc, (requests.ConnectTimeout, requests.ReadTimeout)):
+        return True
+
+    text = str(exc or "")
+    fast_fail_signals = [
+        "NameResolutionError",
+        "getaddrinfo failed",
+        "Temporary failure in name resolution",
+        "Failed to establish a new connection",
+        "Max retries exceeded with url",
+    ]
+    return any(signal in text for signal in fast_fail_signals)
+
 class LoginManager:
     """
     处理教务系统的登录逻辑与Token获取
@@ -56,7 +70,7 @@ class LoginManager:
                 return self.session.post(url, timeout=timeout)
             except requests.RequestException as e:
                 last_exc = e
-                if attempt >= retries:
+                if attempt >= retries or _should_fail_fast(e):
                     raise
                 base = _get_env_float("CP_HTTP_RETRY_BACKOFF_SECONDS", 1.5)
                 sleep_seconds = (base * (2 ** attempt)) + random.random()

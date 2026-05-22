@@ -4,11 +4,38 @@ import sys
 import datetime
 from logger import logger
 from config_manager import ConfigManager
+from grade_service import GradeService
 from login_manager import LoginManager
 from real_scraper import CourseScraper
 from pusher import Pusher
 
 WEEKDAYS = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"]
+
+
+def run_grade_check_task(config=None):
+    """
+    执行一次成绩自动检测。
+    注意：该任务失败时不应阻断原有课表推送主流程。
+    """
+    config = config if config else ConfigManager()
+    try:
+        logger.info("成绩检测: 开始执行当前学期新成绩检查")
+        grade_service = GradeService(config)
+        result = grade_service.check_new_grades()
+        new_items = result.get("new_items", [])
+        updated_items = result.get("updated_items", [])
+        push_result = result.get("push_result", {})
+
+        logger.info(
+            "成绩检测: 检查完成，新增=%s，更新=%s，推送状态=%s",
+            len(new_items),
+            len(updated_items),
+            push_result.get("message", "未触发推送"),
+        )
+        return True, result
+    except Exception as e:
+        logger.warning(f"成绩检测: 检查失败，但不影响课表推送主流程: {e}", exc_info=True)
+        return False, {"message": str(e)}
 
 def run_push_task(force=False, source="auto"):
     """

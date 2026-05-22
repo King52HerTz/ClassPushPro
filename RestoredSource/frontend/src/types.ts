@@ -14,6 +14,13 @@ export interface AppConfig {
   push_time: string;
   auto_start: boolean;
   grade_push_enabled?: boolean;
+  grade_check_interval_minutes?: number;
+  grade_check_start_time?: string;
+  grade_check_end_time?: string;
+  grade_push_initialized?: boolean;
+  semester_start_date?: string;
+  time_slots?: Record<string, [string, string]>;
+  calendar_alarm_minutes?: number;
   last_push_success_time?: string;
   last_ignored_push_date?: string;
   jw_cached_username?: string;
@@ -42,9 +49,18 @@ export interface PreviewCoursesData {
   update_time_str?: string;      // 缓存更新时间描述 (如 "10分钟前")
 }
 
+export interface CalendarExportData {
+  file_path: string;
+  file_name: string;
+  course_count: number;
+  export_scope?: 'current_week' | 'next_7_days' | 'term';
+  export_scope_label?: string;
+}
+
 export interface SystemStatusData {
   autostart?: boolean;
   scheduler_active: boolean;
+  grade_scheduler_active?: boolean;
 }
 
 export interface GradeSemester {
@@ -85,6 +101,7 @@ export interface GradeQueryData {
   summary?: Record<string, string>;
   grades: GradeItem[];
   source?: 'online' | 'offline';
+  update_time_str?: string;
 }
 
 export interface GradeCheckData {
@@ -111,4 +128,16 @@ export interface LoginFormValues {
 export interface SettingsFormValues {
   push_time: import('dayjs').Dayjs;
   auto_start: boolean;
+  grade_push_enabled?: boolean;
+  grade_check_interval_minutes?: number;
+  grade_check_start_time?: import('dayjs').Dayjs;
+  grade_check_end_time?: import('dayjs').Dayjs;
+  semester_start_date?: import('dayjs').Dayjs;
+  calendar_alarm_minutes?: number;
+  time_slot_1_2?: string;
+  time_slot_3_4?: string;
+  time_slot_5_6?: string;
+  time_slot_7_8?: string;
+  time_slot_9_10?: string;
+  time_slot_11_12?: string;
 }

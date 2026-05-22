@@ -1,6 +1,7 @@
 import type {
     ApiResponse,
     AppConfig,
+    CalendarExportData,
     ConfigInput,
     GradeCheckData,
     GradeQueryData,
@@ -28,6 +29,7 @@ declare global {
                 refresh_grades: (semesterId?: string) => Promise<ApiResponse<GradeQueryData>>;
                 check_new_grades: () => Promise<ApiResponse<GradeCheckData>>;
                 save_grade_push_settings: (enable: boolean) => Promise<ApiResponse<null>>;
+                export_calendar_ics: (scope?: 'current_week' | 'next_7_days' | 'term') => Promise<ApiResponse<CalendarExportData>>;
             }
         }
     }
@@ -122,6 +124,12 @@ export const api = {
     saveGradePushSettings: async (enable: boolean): Promise<ApiResponse<null>> => {
         if (window.pywebview?.api?.save_grade_push_settings) {
             return await window.pywebview.api.save_grade_push_settings(enable);
+        }
+        return { status: 'error', message: 'API未就绪' };
+    },
+    exportCalendarIcs: async (scope: 'current_week' | 'next_7_days' | 'term' = 'term'): Promise<ApiResponse<CalendarExportData>> => {
+        if (window.pywebview?.api?.export_calendar_ics) {
+            return await window.pywebview.api.export_calendar_ics(scope);
         }
         return { status: 'error', message: 'API未就绪' };
     }

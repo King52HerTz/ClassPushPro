@@ -4,7 +4,7 @@ import argparse
 import threading
 import time
 from api import Api
-from run_job import run_push_task
+from run_job import run_grade_check_task, run_push_task
 from logger import logger
 
 def _try_set_windows_icon(window_title: str, icon_path: str):
@@ -198,12 +198,19 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-job", action="store_true", help="Run push task silently")
     parser.add_argument("--create-schedule", type=str, help="Create schedule task with admin privileges")
+    parser.add_argument("--run-grade-job", action="store_true", help="Run grade check task silently")
+    parser.add_argument("--create-grade-schedule", nargs=3, metavar=("START", "INTERVAL", "END"), help="Create grade schedule task with admin privileges")
     args = parser.parse_args()
 
     # 2. 如果是运行任务模式
     if args.run_job:
         logger.info("Running push task in silent mode...")
         run_push_task()
+        sys.exit(0)
+
+    if args.run_grade_job:
+        logger.info("Running grade check task in silent mode...")
+        run_grade_check_task()
         sys.exit(0)
     
     # 3. 如果是创建任务模式 (Admin)
@@ -216,6 +223,18 @@ if __name__ == '__main__':
             sys.exit(0)
         else:
             logger.error(f"Task creation failed: {msg}")
+            sys.exit(1)
+
+    if args.create_grade_schedule:
+        from scheduler import create_grade_schedule_task
+        start_time, interval_minutes, end_time = args.create_grade_schedule
+        logger.info(f"Creating grade schedule task: start={start_time}, interval={interval_minutes}, end={end_time}")
+        success, msg = create_grade_schedule_task(start_time, int(interval_minutes), end_time)
+        if success:
+            logger.info("Grade task created successfully.")
+            sys.exit(0)
+        else:
+            logger.error(f"Grade task creation failed: {msg}")
             sys.exit(1)
 
     # 4. 正常启动 GUI
@@ -266,6 +285,12 @@ if __name__ == '__main__':
         api.save_config,
         api.login_test,
         api.get_preview_courses,
+        api.export_calendar_ics,
+        api.get_grade_semesters,
+        api.get_grades,
+        api.refresh_grades,
+        api.check_new_grades,
+        api.save_grade_push_settings,
         api.manual_push,
         api.ignore_missed_push,
         api.set_autostart,
