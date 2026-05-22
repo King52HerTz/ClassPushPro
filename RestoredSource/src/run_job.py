@@ -355,15 +355,16 @@ def _generate_weather_section(weather_summary):
     if not weather_summary:
         return ""
 
-    badge = "缓存" if weather_summary.get("is_cached") else "预报"
+    badge = "缓存" if weather_summary.get("is_cached") else "天气"
     day_label = weather_summary.get("day_label", "")
     location = weather_summary.get("location_label", "湖南工学院珠晖校区")
     summary = weather_summary.get("summary", "")
     extra_summary = weather_summary.get("extra_summary", "")
     suggestion = weather_summary.get("suggestion", "")
     fetched_at = weather_summary.get("fetched_at", "")
-    title = f"{day_label}天气预报" if day_label else "校园天气预报"
+    title = f"{day_label}出门小提醒" if day_label else "校园天气提醒"
     extra_html = f'<div class="weather-extra">{extra_summary}</div>' if extra_summary else ""
+    note_html = f'<div class="weather-suggestion">{suggestion}</div>' if suggestion else ""
 
     return f"""
     <div class="weather-card">
@@ -371,10 +372,10 @@ def _generate_weather_section(weather_summary):
             <span class="weather-title">{title}</span>
             <span class="weather-badge">{badge}</span>
         </div>
-        <div class="weather-location">位置：{location}</div>
+        <div class="weather-location">{location}</div>
         <div class="weather-summary">{summary}</div>
         {extra_html}
-        <div class="weather-suggestion">出门建议：{suggestion}</div>
+        {note_html}
         <div class="weather-time">更新时间：{fetched_at}</div>
     </div>
     """
@@ -413,9 +414,9 @@ def _generate_push_content(courses, date_str, weekday_str, is_delayed=False, is_
         .weather-title { font-size: 15px; font-weight: bold; color: #389e0d; }
         .weather-badge { font-size: 12px; color: #237804; background: #d9f7be; padding: 2px 8px; border-radius: 999px; }
         .weather-location { font-size: 13px; color: #237804; margin-bottom: 4px; }
-        .weather-summary { font-size: 14px; color: #135200; }
+        .weather-summary { font-size: 14px; color: #135200; line-height: 1.8; }
         .weather-extra { font-size: 12px; color: #528c34; margin-top: 6px; }
-        .weather-suggestion { font-size: 13px; color: #237804; margin-top: 8px; }
+        .weather-suggestion { font-size: 13px; color: #237804; margin-top: 8px; line-height: 1.7; }
         .weather-time { font-size: 12px; color: #528c34; margin-top: 6px; }
     </style>
     """

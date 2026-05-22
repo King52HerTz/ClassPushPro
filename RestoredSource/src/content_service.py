@@ -138,24 +138,28 @@ class WeatherContentService:
         )
 
         summary_parts = [
-            f"{weather_text}，{temp_min}-{temp_max}C",
-            f"降水量 {precipitation_amount} mm" if precipitation_amount != "-" else "",
-            f"湿度 {humidity}%" if humidity != "-" else "",
+            f"{weather_text}，{temp_min}-{temp_max}°C",
+            f"降水 {precipitation_amount} mm" if precipitation_amount != "-" and precipitation_amount != "0" else "",
             f"{wind_direction}{wind_scale}级" if wind_direction != "-" and wind_scale != "-" else (
                 f"风力 {wind_scale}级" if wind_scale != "-" else ""
             ),
+            f"湿度 {humidity}%" if humidity != "-" and humidity not in ("0", "1") else "",
         ]
         summary = "，".join(part for part in summary_parts if part)
 
         extra_parts = []
-        if uv_index != "-":
-            extra_parts.append(f"紫外线 {uv_index}")
-        if cloud != "-":
-            extra_parts.append(f"云量 {cloud}%")
-        if sunrise:
-            extra_parts.append(f"日出 {sunrise}")
-        if sunset:
-            extra_parts.append(f"日落 {sunset}")
+        if uv_index not in ("-", ""):
+            try:
+                if int(uv_index) >= 10:
+                    extra_parts.append("紫外线偏强")
+            except ValueError:
+                pass
+        if cloud not in ("-", ""):
+            try:
+                if int(cloud) >= 80:
+                    extra_parts.append("云层偏厚")
+            except ValueError:
+                pass
 
         return {
             "location_label": SCHOOL_WEATHER_TARGET["label"],
@@ -224,7 +228,7 @@ class WeatherContentService:
         )
 
         summary = (
-            f"{weather_text}，{temp_min}-{temp_max}C，"
+            f"{weather_text}，{temp_min}-{temp_max}°C，"
             f"降水概率 {precipitation_probability}%，最大风速 {wind_speed} km/h"
         )
 
@@ -359,29 +363,29 @@ class WeatherContentService:
         foggy_keywords = ("雾",)
 
         if any(keyword in weather_text for keyword in ("雷暴", "暴雨", "大雨")):
-            return f"小主，{day_label}雨可能有点大，出门把伞带好，路上看到积水就绕着走。"
+            return f"{day_label}雨会比较明显，伞先放包里，路上看到积水记得绕一下。"
         if any(keyword in weather_text for keyword in rainy_keywords):
-            return f"小主，{day_label}可能会下雨，出门前看一眼窗外，别把伞忘啦。"
+            return f"{day_label}可能有雨，出门前看一眼窗外，顺手把伞带上。"
         if any(keyword in weather_text for keyword in snowy_keywords):
-            return f"小主，{day_label}会冷一些，外套穿厚点，路上慢慢走。"
+            return f"{day_label}会冷一些，穿暖和点，路上慢一点。"
         if any(keyword in weather_text for keyword in foggy_keywords):
-            return f"小主，{day_label}早上可能有点雾，路上别着急，慢一点更安心。"
+            return f"{day_label}早上可能有点雾，出门别太赶，注意看路。"
         if precipitation_val is not None and precipitation_val >= 20:
-            return f"小主，{day_label}天气可能有点闷，包里放把伞。"
+            return f"{day_label}空气会有点闷，包里放把伞更安心。"
         if temp_max_val is not None and temp_max_val >= 35:
-            return f"小主，{day_label}会很热，防晒记得做好，水也多喝一点。"
+            return f"{day_label}会挺热，防晒记得做好，水也别忘了带。"
         if temp_max_val is not None and temp_max_val >= 30:
-            return f"小主，{day_label}外面会有点晒，出门记得防晒，顺手带瓶水。"
+            return f"{day_label}有点晒，出门记得防晒，顺手带瓶水。"
         if temp_max_val is not None and temp_max_val >= 27:
-            return f"小主，{day_label}有点热，中午前后少在太阳底下站太久。"
+            return f"{day_label}会有点热，中午前后尽量少晒一会儿。"
         if temp_min_val is not None and temp_min_val <= 10:
-            return f"小主，{day_label}早晚会有点凉，薄外套带上，别着凉了。"
+            return f"{day_label}早晚偏凉，薄外套带上，别着凉了。"
         if wind_val is not None and wind_val >= 25:
-            return f"小主，{day_label}风有点大，伞和帽子都拿稳一点。"
+            return f"{day_label}风有点大，走路和打伞都慢一点。"
         if "晴" in weather_text:
-            return f"小主，{day_label}天气挺舒服的，安心出门就好，记得补水。"
+            return f"{day_label}天气不错，按时出门就好，记得补水。"
         if any(keyword in weather_text for keyword in ("多云", "少云", "晴间多云")):
-            return f"小主，{day_label}这天气还挺舒服的，按时出门就好。"
+            return f"{day_label}天气挺舒服的，照常出门就行。"
         if "阴" in weather_text:
-            return f"小主，{day_label}是阴天，体感会舒服一点，正常穿就行。"
-        return f"小主，{day_label}出门前顺手看一眼天气，路上注意安全。"
+            return f"{day_label}是阴天，体感会舒服一点，正常穿就好。"
+        return f"{day_label}出门前顺手看一眼天气，路上注意安全。"
