@@ -13,7 +13,7 @@ import random
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
-from run_job import run_push_task
+from run_job import run_grade_check_task, run_push_task
 from logger import logger
 
 def check_env_vars():
@@ -178,10 +178,13 @@ if __name__ == "__main__":
     _restore_bootstrap_config()
     _probe_school_network()
 
-    # 2. 运行推送任务
-    # force=True: 强制运行，忽略"今日已推送"的检查 (因为 Actions 本身就是定时的)
-    # source="auto": 标记为自动任务
-    success, msg = run_push_task(force=True, source="auto")
+    job_type = (os.getenv("CP_JOB") or "schedule").strip().lower()
+    if job_type == "grades":
+        success, result = run_grade_check_task()
+        msg = result.get("push_result", {}).get("message") or result.get("message") or "成绩检查完成"
+    else:
+        # force=True: Actions 的晨间/晚间工作流本身已经负责调度。
+        success, msg = run_push_task(force=True, source="auto")
 
     if success:
         print(f"SUCCESS: {msg}")

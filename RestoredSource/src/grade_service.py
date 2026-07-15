@@ -1,4 +1,5 @@
 import copy
+import html
 import json
 import os
 from datetime import datetime
@@ -245,8 +246,9 @@ class GradeService:
                 "push_result": push_result,
             }
 
-        if should_push and new_items:
-            push_success, push_message = self._push_new_grades(new_items)
+        has_changes = bool(new_items or updated_items)
+        if should_push and has_changes:
+            push_success, push_message = self._push_grade_changes(new_items, updated_items)
             push_result = {
                 "attempted": True,
                 "success": push_success,
@@ -254,11 +256,13 @@ class GradeService:
             }
             if push_success:
                 updated_cache["last_push_time"] = self._now_str()
+                self.save_grade_cache(updated_cache)
         elif should_push:
             push_result["attempted"] = True
             push_result["message"] = "当前学期暂无新增成绩"
-
-        self.save_grade_cache(updated_cache)
+            self.save_grade_cache(updated_cache)
+        else:
+            self.save_grade_cache(updated_cache)
 
         return {
             "current_term": current_term,
@@ -268,47 +272,76 @@ class GradeService:
             "push_result": push_result,
         }
 
-    def build_grade_push_message(self, new_items):
+    def build_grade_push_message(self, new_items, updated_items=None):
         items = self._sort_grade_items(new_items)
-        count = len(items)
+        updates = [item for item in (updated_items or []) if isinstance(item, dict)]
+        count = len(items) + len(updates)
         if count <= 0:
             return "", "暂无新成绩"
 
-        if count == 1:
+        if len(items) == 1 and not updates:
             only = items[0]
-            summary = f"🎉 小主，新成绩发布啦：{only.get('course_name') or '未知课程'} {only.get('score') or '待公布'}"
+            summary = f"新成绩：{only.get('course_name') or '未知课程'} {only.get('score') or '待公布'}"
+        elif len(updates) == 1 and not items:
+            after = updates[0].get("after", {})
+            summary = f"成绩有更新：{after.get('course_name') or '未知课程'}"
         else:
-            summary = f"🎉 小主，你有 {count} 门新成绩已发布，快来看看"
+            summary = f"成绩更新：新增 {len(items)} 门，修改 {len(updates)} 门"
 
-        lines = [
-            f"# {summary}",
-            "",
-            "> 检测到当前学期有新的成绩更新，明细如下：",
-            "",
-            f"> **检测时间**：{self._now_str()}",
-            "",
-            "---",
-            ""
-        ]
+        cards = [self._build_grade_card(item, "新成绩") for item in items]
+        for update in updates:
+            before = update.get("before", {}) if isinstance(update.get("before"), dict) else {}
+            after = update.get("after", {}) if isinstance(update.get("after"), dict) else {}
+            previous_score = str(before.get("score") or "--")
+            cards.append(self._build_grade_card(after, f"成绩修改 · 原分数 {previous_score}"))
 
-        for item in items:
-            course_name = item.get('course_name') or '未知课程'
-            score = item.get('score') or '待公布'
-            
-            # 使用表情增加可读性
-            lines.extend([
-                f"### 📖 {course_name}",
-                f"- **分数**：`{score}`",
-                f"- **绩点**：{item.get('gpa') or '--'}",
-                f"- **学分**：{item.get('credit') or '--'}",
-                f"- **学期**：{item.get('semester_name') or item.get('semester_id') or '--'}",
-                f"- **考核**：{item.get('exam_name') or '--'} ({item.get('examination_nature') or '--'})",
-                "",
-                "---",
-                ""
-            ])
+        content = f"""
+<div style="margin:0;background:#f5f7fb;padding:18px 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;color:#182230;">
+  <div style="max-width:620px;margin:0 auto;">
+    <div style="background:linear-gradient(135deg,#1677ff,#69b1ff);border-radius:18px;padding:22px;color:#fff;box-shadow:0 10px 28px rgba(22,119,255,.20);">
+      <div style="font-size:13px;opacity:.86;letter-spacing:1px;">CLASSPUSH · 成绩通知</div>
+      <div style="font-size:24px;font-weight:750;margin-top:8px;">有新的成绩动态</div>
+      <div style="font-size:14px;opacity:.9;margin-top:6px;">新增 {len(items)} 门 · 修改 {len(updates)} 门 · {html.escape(self._now_str())}</div>
+    </div>
+    <div style="margin-top:14px;">{''.join(cards)}</div>
+    <a href="https://jw.hnit.edu.cn/" style="display:block;margin-top:16px;padding:13px 16px;text-align:center;background:#182230;color:#fff;text-decoration:none;border-radius:12px;font-weight:650;">打开教务系统核对成绩 →</a>
+    <div style="text-align:center;color:#98a2b3;font-size:12px;margin:14px 0 4px;">由 ClassPush 自动检查，仅在成绩变化时通知</div>
+  </div>
+</div>
+""".strip()
+        return content, summary
 
-        return "\n".join(lines).strip(), summary
+    def _build_grade_card(self, item, badge):
+        item = item if isinstance(item, dict) else {}
+        course_name = html.escape(str(item.get("course_name") or "未知课程"))
+        score_text = html.escape(str(item.get("score") or "待公布"))
+        badge_text = html.escape(str(badge or "成绩动态"))
+        gpa = html.escape(str(item.get("gpa") or "--"))
+        credit = html.escape(str(item.get("credit") or "--"))
+        semester = html.escape(str(item.get("semester_name") or item.get("semester_id") or "--"))
+        exam = html.escape(str(item.get("exam_name") or item.get("examination_nature") or "--"))
+        score_color = "#f04438" if self._looks_like_failed_score(item.get("score"), item.get("pass_status")) else "#1677ff"
+        return f"""
+<div style="background:#fff;border:1px solid #eaecf0;border-radius:16px;padding:17px;margin-bottom:12px;box-shadow:0 4px 16px rgba(16,24,40,.05);">
+  <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+    <div style="min-width:0;">
+      <div style="display:inline-block;padding:3px 8px;border-radius:999px;background:#eff8ff;color:#175cd3;font-size:12px;">{badge_text}</div>
+      <div style="font-size:17px;font-weight:700;line-height:1.45;margin-top:8px;">{course_name}</div>
+    </div>
+    <div style="font-size:32px;line-height:1;font-weight:800;color:{score_color};white-space:nowrap;">{score_text}</div>
+  </div>
+  <div style="height:1px;background:#f2f4f7;margin:14px 0;"></div>
+  <div style="font-size:13px;line-height:1.9;color:#667085;">绩点 <b style="color:#344054;">{gpa}</b>　学分 <b style="color:#344054;">{credit}</b><br>学期 {semester}<br>考核 {exam}</div>
+</div>
+""".strip()
+
+    def _looks_like_failed_score(self, score, pass_status=""):
+        if "不及格" in str(pass_status or "") or "未通过" in str(pass_status or ""):
+            return True
+        try:
+            return float(str(score).strip()) < 60
+        except (TypeError, ValueError):
+            return False
 
     def save_grade_push_settings(self, enable=None, interval_minutes=None, start_time=None, end_time=None):
         return self.config.update_grade_push_settings(
@@ -539,16 +572,16 @@ class GradeService:
         cache = self._normalize_cache_shape(cache_data)
         return bool(cache.get("semesters")) and bool(cache.get("last_check_time"))
 
-    def _push_new_grades(self, new_items):
+    def _push_grade_changes(self, new_items, updated_items=None):
         app_token = self.config.get("app_token")
         uid = self.config.get("uid")
         if not app_token or not uid:
             return False, "WxPusher 配置不完整"
 
-        content, summary = self.build_grade_push_message(new_items)
+        content, summary = self.build_grade_push_message(new_items, updated_items)
         if not content:
             return False, "推送内容为空"
 
         pusher = Pusher(app_token)
-        success, message = pusher.send([uid], content, summary=summary, content_type=3)
+        success, message = pusher.send([uid], content, summary=summary, content_type=2)
         return success, message

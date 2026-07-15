@@ -341,9 +341,19 @@ class ConfigManager:
         env_key = f"CP_{key.upper()}"
         env_val = os.getenv(env_key)
         if env_val:
-            # 只有 username, password, app_token, uid 这几个核心字段支持从环境变量读取
-            if key in ["username", "password", "app_token", "uid", "push_time", "weather_api_key", "weather_api_host", "weather_credential_id"]:
+            if key in [
+                "username", "password", "app_token", "uid", "push_time",
+                "weather_api_key", "weather_api_host", "weather_credential_id",
+                "grade_check_start_time", "grade_check_end_time",
+            ]:
                 return env_val
+            if key in ["grade_push_enabled", "weather_enabled"]:
+                return env_val.strip().lower() in {"1", "true", "yes", "on"}
+            if key in ["grade_check_interval_minutes"]:
+                try:
+                    return int(env_val)
+                except ValueError:
+                    pass
         
         # 2. 回退到读取本地配置
         return self.config_data.get(key, default)
