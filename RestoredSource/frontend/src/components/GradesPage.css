@@ -1,0 +1,52 @@
+.grades-page {
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+.grades-card {
+    border: 1px solid #eaecf0 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 4px 14px rgba(16, 24, 40, 0.04) !important;
+}
+
+.grades-table .ant-table-thead > tr > th {
+    background: #f8fafc;
+    color: #475467;
+    font-weight: 650;
+}
+
+.grades-table .ant-table-tbody > tr:hover > td {
+    background: #f5f9ff !important;
+}
+
+.grade-course-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.grade-course-cell .ant-typography-secondary {
+    font-size: 12px;
+}
+
+.grade-score {
+    font-size: 19px;
+    font-weight: 750;
+}
+
+.grade-meta-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    line-height: 1.8;
+}
+
+@media (max-width: 720px) {
+    .grades-card .ant-card-body {
+        padding: 16px;
+    }
+
+    .grades-toolbar-actions {
+        justify-content: flex-start !important;
+    }
+}

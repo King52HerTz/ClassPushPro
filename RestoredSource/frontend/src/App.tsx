@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { Layout, Menu, message, Spin, Modal } from 'antd';
 import {
   DashboardOutlined,
@@ -10,15 +10,15 @@ import {
   RightOutlined
 } from '@ant-design/icons';
 import DashboardPage from './components/DashboardPage';
-import CoursePreviewPage from './components/CoursePreviewPage';
-import GradesPage from './components/GradesPage';
-import SettingsPage from './components/SettingsPage';
-import AboutPage from './components/AboutPage';
 import LoginModal from './components/LoginModal';
 import { useResponsiveLayout } from './hooks/useResponsiveLayout';
 import { api } from './api';
 
 const { Header, Sider, Content } = Layout;
+const CoursePreviewPage = lazy(() => import('./components/CoursePreviewPage'));
+const GradesPage = lazy(() => import('./components/GradesPage'));
+const SettingsPage = lazy(() => import('./components/SettingsPage'));
+const AboutPage = lazy(() => import('./components/AboutPage'));
 
 const App = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -296,7 +296,9 @@ const App = () => {
             overflowY: 'auto'
           }}
         >
-          {renderContent()}
+          <Suspense fallback={<div style={{ padding: 48, textAlign: 'center' }}><Spin tip="正在加载页面..." /></div>}>
+            {renderContent()}
+          </Suspense>
         </Content>
       </Layout>
     </Layout>
