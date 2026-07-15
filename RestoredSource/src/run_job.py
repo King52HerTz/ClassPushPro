@@ -9,6 +9,7 @@ from grade_service import GradeService
 from login_manager import LoginManager
 from real_scraper import CourseScraper
 from pusher import Pusher
+from academic_calendar import merge_cached_teaching_state, week_number_for_date
 
 WEEKDAYS = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"]
 
@@ -147,7 +148,9 @@ def run_push_task(force=False, source="auto"):
 
     # 3. 抓取课表
     courses = []
-    current_week = "1"
+    current_week = ""
+    teaching_state = merge_cached_teaching_state({})
+    online_state_resolved = False
     
     try:
         logger.info("阶段[1/3] 开始登录教务系统")
@@ -162,15 +165,34 @@ def run_push_task(force=False, source="auto"):
             token = login_mgr.get_token()
             scraper = CourseScraper(token, session=login_mgr.session)
             logger.info("阶段[2/3] 开始抓取课表数据")
-            courses = scraper.fetch_course_data()
-            current_week = scraper.fetch_current_week()
+            semester_info = scraper.fetch_semester_info()
+            teaching_state = scraper.fetch_teaching_state(semester_info, observed_date=now.date())
+            online_state_resolved = teaching_state.get("schedule_status") != "unknown"
+            current_week_value = teaching_state.get("current_week")
+            current_week = str(current_week_value) if current_week_value is not None else ""
+            semester_id = teaching_state.get("semester_id", "")
+            courses = scraper.fetch_course_data(semester_id=semester_id)
+
+            if teaching_state.get("schedule_status") == "active" and not courses:
+                teaching_state = {
+                    **teaching_state,
+                    "schedule_status": "unpublished",
+                    "is_teaching_week": False,
+                    "message": "当前学期课表暂未发布，请稍后再试",
+                }
             
             if courses:
-                # 成功获取，更新缓存
-                config.save_cached_courses(courses, current_week)
                 logger.info(f"阶段[2/3] 课表抓取完成，共获取 {len(courses)} 条课程记录")
             else:
                 logger.warning("阶段[2/3] 未获取到课程数据或课表为空")
+
+            if online_state_resolved:
+                config.save_cached_courses(
+                    courses,
+                    current_week,
+                    semester_id=semester_id,
+                    teaching_state=teaching_state,
+                )
         else:
             logger.warning(f"阶段[1/3] 登录失败: {msg}，尝试使用本地缓存")
             
@@ -179,45 +201,29 @@ def run_push_task(force=False, source="auto"):
 
     # 如果在线获取失败，尝试读取缓存
     is_offline_mode = False
-    if not courses:
+    if not courses and not online_state_resolved:
         cached_data = cached_data_preview or config.get_cached_courses()
         if cached_data:
             courses = cached_data.get("courses", [])
-            current_week = cached_data.get("current_week", "1")
+            teaching_state = merge_cached_teaching_state(cached_data)
+            cached_week = teaching_state.get("current_week")
+            current_week = str(cached_week) if cached_week is not None else ""
             cache_update_ts = cached_data.get("update_time", "未知")
             logger.info(
                 f"阶段[2/3] 在线抓取不可用，开始加载离线缓存，共命中 {len(courses)} 条课程记录，缓存时间戳={cache_update_ts}"
             )
             
-            # 智能周次推算逻辑
-            # 如果缓存中有上次更新时间，尝试推算当前周次
-            last_update_str = config.get("jw_cached_time")
-            if last_update_str:
-                try:
-                    last_dt = datetime.datetime.strptime(last_update_str, "%Y-%m-%d %H:%M:%S")
-                    # 计算两个日期相差的天数
-                    days_diff = (now - last_dt).days
-                    # 计算相差的周数 (向下取整)
-                    weeks_diff = days_diff // 7
-                    
-                    if weeks_diff > 0:
-                        old_week = int(current_week)
-                        new_week = old_week + weeks_diff
-                        logger.info(f"离线模式: 根据时间差({days_diff}天)自动推算周次: {old_week} -> {new_week}")
-                        current_week = str(new_week)
-                except Exception as e:
-                    logger.warning(f"离线周次推算失败: {e}")
-
-            # 特殊处理：如果是学校没有第一周，默认修正为2
-            # if current_week == "1":
-            #      logger.info("检测到周次为1，根据学校特性修正为2")
-            #      current_week = "2"
-
             is_offline_mode = True
             logger.info(f"已切换至离线模式，使用本地缓存课表 (当前周次: {current_week})")
         else:
             logger.error("阶段[2/3] 在线抓取失败，且缓存预检查与兜底读取均未命中本地课表缓存，无法继续推送")
             return False, "获取课表失败"
+
+    schedule_status = teaching_state.get("schedule_status", "unknown")
+    if schedule_status != "active":
+        status_message = teaching_state.get("message") or "当前不处于正常教学周"
+        logger.info("课表推送已跳过: status=%s, message=%s", schedule_status, status_message)
+        return True, f"已跳过课表推送：{status_message}"
     
     # ---- 智能切换目标日期 (仅针对延迟的晨间推送) ----
     if is_delayed and is_morning_push:
@@ -236,17 +242,19 @@ def run_push_task(force=False, source="auto"):
     target_xqmc = WEEKDAYS[target_weekday]
     target_date_str = target_date.strftime("%m月%d日")
     
-    # 智能跨周逻辑：如果目标日期是下一周（周一），且当前周次未更新，需要 +1
-    # 场景：周日(第1周)推送周一(第2周)的课
-    # 判断标准：target_date 的 ISO 周数 > now 的 ISO 周数
-    # 或者简单点：如果 target_weekday 是 0 (周一) 且 now 是周日，说明跨周了
-    if target_weekday == 0 and now.weekday() == 6:
+    calculated_week = week_number_for_date(
+        teaching_state.get("week_one_monday", ""),
+        target_date.date(),
+    )
+    if calculated_week is not None:
+        current_week = str(calculated_week)
+    elif target_weekday == 0 and now.weekday() == 6:
+        # 仅为旧缓存保留兜底；新缓存统一使用学期第1周周一计算。
         try:
-            old_week = int(current_week)
-            current_week = str(old_week + 1)
-            logger.info(f"检测到跨周推送 (周日->周一)，周次自动+1: {old_week} -> {current_week}")
-        except:
-            pass
+            current_week = str(int(current_week) + 1)
+        except (TypeError, ValueError):
+            logger.warning("无法确认目标日期周次，跳过推送")
+            return True, "已跳过课表推送：无法确认目标日期周次"
 
     # current_week 已在上面获取 (在线或缓存)
     logger.info(f"当前周次: {current_week}，目标日期: {target_date_str} ({target_xqmc})")

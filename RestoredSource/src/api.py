@@ -10,6 +10,7 @@ from content_service import WeatherContentService
 from grade_service import GradeService
 from login_manager import LoginManager
 from real_scraper import CourseScraper
+from academic_calendar import merge_cached_teaching_state
 from run_job import run_push_task
 from autostart import set_autostart, check_autostart
 from scheduler import (
@@ -211,18 +212,41 @@ class Api:
         if success:
             try:
                 scraper = CourseScraper(mgr.get_token(), session=mgr.session)
-                current_week = scraper.fetch_current_week()
-                courses = scraper.fetch_course_data()
-                
-                if courses:
-                    # 成功获取到数据，更新缓存
-                    self.config.save_cached_courses(courses, current_week)
+                semester_info = scraper.fetch_semester_info()
+                teaching_state = scraper.fetch_teaching_state(semester_info)
+                current_week = teaching_state.get("current_week")
+                semester_id = teaching_state.get("semester_id", "")
+                courses = scraper.fetch_course_data(semester_id=semester_id)
+
+                if teaching_state.get("schedule_status") == "active" and not courses:
+                    teaching_state = {
+                        **teaching_state,
+                        "schedule_status": "unpublished",
+                        "is_teaching_week": False,
+                        "message": "当前学期课表暂未发布，请稍后再试",
+                    }
+
+                if courses or teaching_state.get("schedule_status") != "unknown":
+                    # 即使处于假期也保存明确状态，避免下次离线误用旧课表。
+                    self.config.save_cached_courses(
+                        courses,
+                        current_week,
+                        semester_id=semester_id,
+                        teaching_state=teaching_state,
+                    )
                     return {
                         "status": "success",
                         "data": {
-                            "currentWeek": current_week,
+                            "currentWeek": current_week or "",
                             "courses": courses,
-                            "source": "online"
+                            "source": "online",
+                            "scheduleStatus": teaching_state.get("schedule_status", "unknown"),
+                            "isTeachingWeek": bool(teaching_state.get("is_teaching_week", False)),
+                            "semesterId": semester_id,
+                            "semesterName": teaching_state.get("semester_name", ""),
+                            "weekOneMonday": teaching_state.get("week_one_monday", ""),
+                            "availableWeeks": teaching_state.get("available_weeks", []),
+                            "scheduleMessage": teaching_state.get("message", ""),
                         }
                     }
             except Exception as e:
@@ -231,6 +255,7 @@ class Api:
         # 网络请求失败或登录失败，尝试读取缓存
         cached_data = self.config.get_cached_courses()
         if cached_data:
+            teaching_state = merge_cached_teaching_state(cached_data)
             import time
             update_time = cached_data.get("update_time", 0)
             time_diff = int(time.time()) - update_time
@@ -245,10 +270,17 @@ class Api:
             return {
                 "status": "success",
                 "data": {
-                    "currentWeek": cached_data.get("current_week", "1"),
+                    "currentWeek": teaching_state.get("current_week") or "",
                     "courses": cached_data.get("courses", []),
                     "source": "offline",
-                    "update_time_str": time_str
+                    "update_time_str": time_str,
+                    "scheduleStatus": teaching_state.get("schedule_status", "unknown"),
+                    "isTeachingWeek": bool(teaching_state.get("is_teaching_week", False)),
+                    "semesterId": teaching_state.get("semester_id", ""),
+                    "semesterName": teaching_state.get("semester_name", ""),
+                    "weekOneMonday": teaching_state.get("week_one_monday", ""),
+                    "availableWeeks": teaching_state.get("available_weeks", []),
+                    "scheduleMessage": teaching_state.get("message", ""),
                 },
                 "message": f"网络不可用，正在显示{time_str}的本地课表缓存"
             }
@@ -275,7 +307,10 @@ class Api:
             if not courses:
                 return {"status": "error", "message": "暂无可导出的课表数据"}
 
-            semester_start_date = self.config.get("semester_start_date", "")
+            semester_start_date = (
+                cached_data.get("week_one_monday", "")
+                or self.config.get("semester_start_date", "")
+            )
             time_slots = self.config.get("time_slots", {})
             calendar_alarm_minutes = self.config.get("calendar_alarm_minutes", 15)
             export_constraints = self._resolve_export_constraints(scope, current_week, semester_start_date)

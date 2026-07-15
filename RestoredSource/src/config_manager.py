@@ -425,7 +425,7 @@ class ConfigManager:
         self.config_data["jw_cached_cookies"] = {}
         return self._save_current_config()
 
-    def save_cached_courses(self, courses, current_week):
+    def save_cached_courses(self, courses, current_week=None, semester_id="", teaching_state=None):
         """保存课表到本地缓存"""
         if not isinstance(courses, list):
             return False
@@ -433,7 +433,10 @@ class ConfigManager:
         import time
         cache_data = {
             "update_time": int(time.time()),
-            "current_week": str(current_week),
+            "current_week": str(current_week or ""),
+            "semester_id": str(semester_id or ""),
+            "week_one_monday": str((teaching_state or {}).get("week_one_monday", "")),
+            "teaching_state": teaching_state if isinstance(teaching_state, dict) else {},
             "courses": courses
         }
         

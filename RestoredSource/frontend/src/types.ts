@@ -49,6 +49,13 @@ export interface PreviewCoursesData {
   courses: Course[];
   source?: 'online' | 'offline'; // 数据来源：在线或离线缓存
   update_time_str?: string;      // 缓存更新时间描述 (如 "10分钟前")
+  scheduleStatus?: 'active' | 'vacation' | 'unpublished' | 'unknown';
+  isTeachingWeek?: boolean;
+  semesterId?: string;
+  semesterName?: string;
+  weekOneMonday?: string;
+  availableWeeks?: number[];
+  scheduleMessage?: string;
 }
 
 export interface CalendarExportData {

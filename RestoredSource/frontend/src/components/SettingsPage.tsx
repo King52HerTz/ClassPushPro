@@ -253,7 +253,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, isLoggedIn = true
 
                 <Card
                     title={renderCardTitle('日历导出', [
-                        'ICS 会根据学期第 1 周周一日期推算每门课的实际日期。',
+                        '系统会根据教务教学周自动校准第 1 周周一；下方日期只作为无法自动识别时的人工兜底。',
                         '导入日历后的提醒时间会写入 ICS 文件，但部分手机日历可能只支持固定档位。',
                         '建议优先使用 15 分钟，20 分钟在部分手机上可能会被忽略或改写。',
                         '课程节次时间已经写死在程序里，导出时会自动使用默认作息。'
@@ -262,13 +262,13 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ onLogout, isLoggedIn = true
                     bodyStyle={{ padding: '24px' }}
                 >
                     <Form.Item
-                        label={<span style={{ color: '#666' }}>学期第 1 周周一日期</span>}
+                        label={<span style={{ color: '#666' }}>学期第 1 周周一日期（可选兜底）</span>}
                         name="semester_start_date"
                     >
                         <DatePicker
                             format="YYYY-MM-DD"
                             style={{ width: '100%', borderRadius: 12, height: 40 }}
-                            placeholder="请选择周一日期"
+                            placeholder="通常无需填写，系统会自动校准"
                         />
                     </Form.Item>
                     <Form.Item

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Spin, message, Select, Radio, Button, Space, Card, Row, Col, Modal, Descriptions, Alert } from 'antd';
+import { Spin, message, Select, Radio, Button, Space, Card, Row, Col, Modal, Descriptions, Alert, Empty } from 'antd';
 import { api } from '../api';
 import { ReloadOutlined, AppstoreOutlined, TableOutlined, EnvironmentOutlined, UserOutlined, ClockCircleOutlined, WifiOutlined, CalendarOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import WeekTimetable from './WeekTimetable'; // 刚才创建的新组件
@@ -9,8 +9,8 @@ import type { Course, PreviewCoursesData } from '../types';
 
 dayjs.locale('zh-cn');
 
-const COURSE_CACHE_KEY = 'course_data_cache_v2';
-const COURSE_SIGNATURE_KEY = 'course_data_signature_v2';
+const COURSE_CACHE_KEY = 'course_data_cache_v3';
+const COURSE_SIGNATURE_KEY = 'course_data_signature_v3';
 const EMPTY_COURSE_CACHE_MESSAGE = '当前暂无本地课表缓存，请联网后首次加载';
 
 // 仿截图配色方案 (与 WeekTimetable 保持一致)
@@ -66,6 +66,7 @@ const CoursePreviewPage: React.FC = () => {
     const [exporting, setExporting] = useState(false);
     const [exportScope, setExportScope] = useState<'current_week' | 'next_7_days' | 'term'>('current_week');
     const [localCacheTimeStr, setLocalCacheTimeStr] = useState('');
+    const [scheduleInfo, setScheduleInfo] = useState<PreviewCoursesData | null>(null);
 
     const formatRelativeTime = (timestamp: number) => {
         if (!Number.isFinite(timestamp) || timestamp <= 0) {
@@ -102,8 +103,9 @@ const CoursePreviewPage: React.FC = () => {
 
         setCourses(cachedCourses);
         setCurrentWeek(cachedWeek);
-        if (selectedWeek === '1') {
-            setSelectedWeek(cachedWeek === '1' ? '2' : cachedWeek);
+        setScheduleInfo(cachedData);
+        if (selectedWeek === '1' && cachedWeek) {
+            setSelectedWeek(cachedWeek);
         }
         setLocalCacheTimeStr(timeStr);
         setOfflineInfo({ isOffline: true, timeStr, cacheMissing: false });
@@ -128,6 +130,10 @@ const CoursePreviewPage: React.FC = () => {
     // 注意：教务系统返回的 currentWeek 是基于开学日期的
     // 我们用 dayjs 来处理日期
     const selectedWeekMonday = useMemo(() => {
+        const automaticAnchor = scheduleInfo?.weekOneMonday;
+        if (automaticAnchor && dayjs(automaticAnchor, 'YYYY-MM-DD', true).isValid()) {
+            return dayjs(automaticAnchor).add((parseInt(selectedWeek) || 1) - 1, 'week');
+        }
         const today = dayjs();
         const currentWeekNum = parseInt(currentWeek) || 1;
         const selectedWeekNum = parseInt(selectedWeek) || 1;
@@ -140,7 +146,7 @@ const CoursePreviewPage: React.FC = () => {
         // 计算目标周的周一
         // 目标周一 = 当前周一 + (目标周 - 当前周) * 7天
         return currentMonday.add((selectedWeekNum - currentWeekNum) * 7, 'day');
-    }, [currentWeek, selectedWeek]);
+    }, [currentWeek, selectedWeek, scheduleInfo?.weekOneMonday]);
 
     // 映射节次到具体时间
     const getTimeRange = (classTime: string) => {
@@ -159,7 +165,13 @@ const CoursePreviewPage: React.FC = () => {
             const res = await api.getPreviewCourses();
             if (res.status === 'success' && res.data) {
                 const newCourses = res.data.courses;
-                const newCurrentWeek = String(res.data.currentWeek);
+                const newCurrentWeek = String(res.data.currentWeek || '');
+                const semesterChanged = Boolean(
+                    scheduleInfo?.semesterId
+                    && res.data.semesterId
+                    && scheduleInfo.semesterId !== res.data.semesterId
+                );
+                setScheduleInfo(res.data);
                 
                 // 处理离线状态
                 const isOffline = res.data.source === 'offline';
@@ -177,7 +189,10 @@ const CoursePreviewPage: React.FC = () => {
                 // 生成数据签名 (用于比对是否更新)
                 const newSignature = JSON.stringify({
                     courses: newCourses,
-                    week: newCurrentWeek
+                    week: newCurrentWeek,
+                    semester: res.data.semesterId,
+                    status: res.data.scheduleStatus,
+                    anchor: res.data.weekOneMonday,
                 });
                 const lastSignature = sessionStorage.getItem(COURSE_SIGNATURE_KEY) || localStorage.getItem(COURSE_SIGNATURE_KEY);
                 const isDataChanged = newSignature !== lastSignature;
@@ -195,12 +210,10 @@ const CoursePreviewPage: React.FC = () => {
                     setLocalCacheTimeStr('刚刚');
                     
                     // 如果不保持选择（即初始化时且无缓存），设置默认周次
-                    if (!keepSelection) {
-                        if (newCurrentWeek === '1') {
-                            setSelectedWeek('2');
-                        } else {
-                            setSelectedWeek(newCurrentWeek);
-                        }
+                    const selectedWeekStillValid = res.data.availableWeeks?.includes(Number(selectedWeek)) ?? false;
+                    if (!keepSelection || semesterChanged || !selectedWeekStillValid) {
+                        const firstAvailableWeek = res.data.availableWeeks?.[0];
+                        setSelectedWeek(newCurrentWeek || String(firstAvailableWeek || 1));
                     }
                     
                     // 仅当数据确实变化时提示
@@ -241,16 +254,13 @@ const CoursePreviewPage: React.FC = () => {
                 const parsed = JSON.parse(cachedDataStr) as { savedAt?: number; data?: PreviewCoursesData };
                 const cachedData = parsed?.data as PreviewCoursesData;
                 setCourses(Array.isArray(cachedData.courses) ? cachedData.courses : []);
-                const cachedWeek = String(cachedData.currentWeek);
+                const cachedWeek = String(cachedData.currentWeek || '');
                 setCurrentWeek(cachedWeek);
+                setScheduleInfo(cachedData);
                 setLocalCacheTimeStr(formatRelativeTime(Number(parsed?.savedAt || 0)));
                 
                 // 恢复上次的周次选择，或者默认
-                if (cachedWeek === '1') {
-                    setSelectedWeek('2');
-                } else {
-                    setSelectedWeek(cachedWeek);
-                }
+                setSelectedWeek(cachedWeek || String(cachedData.availableWeeks?.[0] || 1));
                 hasCache = true;
                 // message.success({ content: '已加载本地课表缓存', key: 'course_cache', duration: 1 });
             } catch (e) {
@@ -265,12 +275,9 @@ const CoursePreviewPage: React.FC = () => {
                 setCourses(Array.isArray(cachedData.courses) ? cachedData.courses : []);
                 const cachedWeek = String(cachedData.currentWeek);
                 setCurrentWeek(cachedWeek);
+                setScheduleInfo(cachedData);
                 setLocalCacheTimeStr(formatRelativeTime(Number(localCache.savedAt || 0)));
-                if (cachedWeek === '1') {
-                    setSelectedWeek('2');
-                } else {
-                    setSelectedWeek(cachedWeek);
-                }
+                setSelectedWeek(cachedWeek || String(cachedData.availableWeeks?.[0] || 1));
                 hasCache = true;
             }
         }
@@ -283,12 +290,47 @@ const CoursePreviewPage: React.FC = () => {
 
     // 过滤当前选中周的课程
     const filteredCourses = useMemo(() => {
+        if (scheduleInfo?.scheduleStatus !== 'active') return [];
         return courses.filter(course => {
             if (!course.classWeekDetails) return true;
             const weeks = course.classWeekDetails.split(',');
             return weeks.includes(selectedWeek);
         });
-    }, [courses, selectedWeek]);
+    }, [courses, selectedWeek, scheduleInfo?.scheduleStatus]);
+
+    const availableWeeks = useMemo(() => {
+        if (scheduleInfo?.availableWeeks?.length) return scheduleInfo.availableWeeks;
+        const values = new Set<number>();
+        courses.forEach(course => {
+            String(course.classWeekDetails || '').split(',').forEach(value => {
+                const week = Number(value.trim());
+                if (Number.isInteger(week) && week > 0) values.add(week);
+            });
+        });
+        return Array.from(values).sort((a, b) => a - b);
+    }, [courses, scheduleInfo?.availableWeeks]);
+
+    const scheduleStatus = scheduleInfo?.scheduleStatus || 'unknown';
+    const isScheduleActive = scheduleStatus === 'active';
+    const scheduleAlert = scheduleStatus === 'vacation'
+        ? {
+            title: '现在是假期，不再展示上学期课程',
+            description: scheduleInfo?.scheduleMessage || '教务系统尚未发布新学期课表，发布后刷新即可自动更新，无需手动修改日期。',
+            type: 'success' as const,
+        }
+        : scheduleStatus === 'unpublished'
+            ? {
+                title: '新学期课表暂未发布',
+                description: scheduleInfo?.scheduleMessage || '系统会在教务课表发布后自动获取。',
+                type: 'info' as const,
+            }
+            : scheduleStatus === 'unknown'
+                ? {
+                    title: '暂时无法确认当前教学周',
+                    description: scheduleInfo?.scheduleMessage || '请联网刷新，系统不会把旧课表误当成当前课程。',
+                    type: 'warning' as const,
+                }
+                : null;
 
     // 对过滤后的课程按日期分组 (用于卡片视图)
     const groupedCourses = useMemo(() => {
@@ -422,6 +464,21 @@ const CoursePreviewPage: React.FC = () => {
                 />
             )}
 
+            {scheduleAlert && (
+                <Alert
+                    message={scheduleAlert.title}
+                    description={`${scheduleAlert.description}${scheduleInfo?.semesterName ? ` 当前学期：${scheduleInfo.semesterName}` : ''}`}
+                    type={scheduleAlert.type}
+                    showIcon
+                    style={{ marginBottom: 16, borderRadius: 8 }}
+                    action={
+                        <Button size="small" type="text" icon={<ReloadOutlined />} onClick={() => fetchData(false, true)}>
+                            刷新状态
+                        </Button>
+                    }
+                />
+            )}
+
             {/* 顶部工具栏 */}
             <div style={{ 
                 display: 'flex', 
@@ -441,20 +498,22 @@ const CoursePreviewPage: React.FC = () => {
                         value={selectedWeek} 
                         onChange={setSelectedWeek} 
                         style={{ width: 120 }}
+                        disabled={!isScheduleActive}
                     >
-                        {/* 生成第2周到第19周的选项 */}
-                        {Array.from({ length: 18 }).map((_, i) => (
-                            <Option key={i + 2} value={String(i + 2)}>第 {i + 2} 周</Option>
+                        {availableWeeks.map(week => (
+                            <Option key={week} value={String(week)}>第 {week} 周</Option>
                         ))}
                     </Select>
-                    <span style={{ color: '#999', fontSize: 12 }}>当前: 第 {selectedWeek} 周</span>
+                    <span style={{ color: '#999', fontSize: 12 }}>
+                        {isScheduleActive ? `当前: 第 ${currentWeek} 周` : '当前非教学周'}
+                    </span>
                     
                     <Radio.Group value={viewMode} onChange={e => setViewMode(e.target.value)} buttonStyle="solid">
                         <Radio.Button value="card"><AppstoreOutlined /> 卡片</Radio.Button>
                         <Radio.Button value="table"><TableOutlined /> 课表</Radio.Button>
                     </Radio.Group>
                     
-                    <Button icon={<CalendarOutlined />} loading={exporting} onClick={() => setExportModalVisible(true)}>
+                    <Button icon={<CalendarOutlined />} loading={exporting} disabled={!isScheduleActive} onClick={() => setExportModalVisible(true)}>
                         导出到日历
                     </Button>
                     <Button icon={<QuestionCircleOutlined />} onClick={() => setGuideVisible(true)}>
@@ -465,7 +524,13 @@ const CoursePreviewPage: React.FC = () => {
             </div>
 
             <Spin spinning={loading}>
-                {viewMode === 'card' ? renderCardView() : (
+                {!isScheduleActive ? (
+                    <div style={{ backgroundColor: '#fff', padding: 56, borderRadius: 8 }}>
+                        <Empty
+                            description={scheduleStatus === 'vacation' ? '假期中，等待新学期课表发布 qwq' : '当前没有可展示的课表'}
+                        />
+                    </div>
+                ) : viewMode === 'card' ? renderCardView() : (
                     <div style={{ backgroundColor: '#fff', padding: 24, borderRadius: 8 }}>
                         <WeekTimetable 
                             courses={courses} 
@@ -544,7 +609,7 @@ const CoursePreviewPage: React.FC = () => {
                 ]}
             >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, lineHeight: 1.8 }}>
-                    <div>1. 先在“设置”页面填写学期第 1 周周一日期、节次时间表和提醒时间。</div>
+                    <div>1. 学期第 1 周周一会根据教务教学周自动校准；设置页日期仅用于极端情况下的人工覆盖。</div>
                     <div>2. 回到本页点击“导出到日历”后，建议先选择“本周”或“未来 7 天”做小范围测试；确认没问题后，再导出“全学期”。</div>
                     <div>3. 电脑端一般可以双击 `.ics` 导入系统日历，手机端通常需要先通过微信、QQ、网盘或数据线把文件传到手机。</div>
                     <div>4. 不同品牌手机、不同日历 App 的导入入口差异很大；如果你找不到入口，建议直接去小红书搜索 `ics 文件导入教程`，再加上你的手机品牌或日历 App 名称一起搜。</div>

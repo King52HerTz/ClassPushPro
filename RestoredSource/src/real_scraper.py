@@ -6,6 +6,7 @@ import time
 import random
 from school_adapter import SCHOOL_CONFIG
 from logger import logger
+from academic_calendar import normalize_teaching_state
 
 def _get_env_int(name, default_val):
     raw = (os.getenv(name) or "").strip()
@@ -60,8 +61,8 @@ class CourseScraper:
         if last_exc:
             raise last_exc
 
-    def fetch_semester_id(self):
-        """获取当前学期ID (xnxq01id)"""
+    def fetch_semester_info(self):
+        """获取教务系统标记的当前学期，而不是简单选择 num 最大项。"""
         url = f"{SCHOOL_CONFIG['BASE_URL']}/getXnxqList?token={self.token}"
         try:
             timeout = _get_timeout(10, 15)
@@ -87,40 +88,63 @@ class CourseScraper:
             else:
                 items = []
 
-            # 找到num最大的学期
-            max_num = -1
-            semester_id = None
-            
-            for item in items:
-                if not isinstance(item, dict):
-                    continue
-                    
-                try:
-                    num = int(item.get("num", -1))  # 强制转为int
-                except (ValueError, TypeError):
-                    num = -1
-                    
-                if num > max_num:
-                    max_num = num
-                    semester_id = item.get("xnxq01id")
-            
-            return semester_id
+            valid_items = [item for item in items if isinstance(item, dict) and item.get("xnxq01id")]
+            if not valid_items:
+                return None
+
+            current_item = next(
+                (item for item in valid_items if str(item.get("isdqxq", "")).strip() == "1"),
+                None,
+            )
+            if current_item is None:
+                def semester_number(item):
+                    try:
+                        return int(item.get("num", -1))
+                    except (ValueError, TypeError):
+                        return -1
+                current_item = max(valid_items, key=semester_number)
+
+            return {
+                "semester_id": str(current_item.get("xnxq01id") or "").strip(),
+                "semester_name": str(current_item.get("xqmc") or current_item.get("xnxq01id") or "").strip(),
+                "is_current": str(current_item.get("isdqxq", "")).strip() == "1",
+                "number": current_item.get("num"),
+            }
         except Exception as e:
             logger.exception("获取学期ID失败")
             return None
 
-    def fetch_current_week(self):
-        """获取当前周次 (nowWeek)"""
+    def fetch_semester_id(self):
+        """兼容旧调用：返回当前学期 ID。"""
+        semester = self.fetch_semester_info()
+        return semester.get("semester_id") if semester else None
+
+    def fetch_teaching_state(self, semester_info=None, observed_date=None):
+        """获取教学周完整状态，正确区分假期占位周次和正常教学周。"""
         url = f"{SCHOOL_CONFIG['BASE_URL']}/teachingWeek?token={self.token}"
         try:
             timeout = _get_timeout(8, 12)
             retries = _get_env_int("CP_HTTP_RETRIES", 1)
             resp = self._post_with_retry(url, timeout=timeout, retries=retries)
             data = resp.json()
-            return data.get("nowWeek", "1")
-        except Exception as e:
-            logger.warning("获取当前周次失败，降级为第1周", exc_info=True)
-            return "1"
+            state = normalize_teaching_state(data, semester_info, observed_date=observed_date)
+            logger.info(
+                "教学周状态: status=%s, semester=%s, raw_week=%s, active=%s",
+                state.get("schedule_status"),
+                state.get("semester_id"),
+                state.get("raw_current_week"),
+                state.get("is_teaching_week"),
+            )
+            return state
+        except Exception:
+            logger.warning("获取教学周状态失败", exc_info=True)
+            return normalize_teaching_state({}, semester_info, observed_date=observed_date)
+
+    def fetch_current_week(self):
+        """兼容旧调用；非教学期不再伪装成第1周。"""
+        state = self.fetch_teaching_state()
+        current_week = state.get("current_week")
+        return str(current_week) if current_week is not None else ""
 
     def fetch_schedule_mode(self):
         """获取课程节次模式ID (kbjcmsid)"""
@@ -137,13 +161,13 @@ class CourseScraper:
             logger.exception("获取节次模式失败")
             return None
 
-    def fetch_course_data(self):
+    def fetch_course_data(self, semester_id=None):
         """
         主流程：获取所有必要参数并抓取课表
         :return: 解析后的课程列表或空列表
         """
         logger.info("抓取流程: 开始获取当前学期信息")
-        semester_id = self.fetch_semester_id()
+        semester_id = semester_id or self.fetch_semester_id()
         if not semester_id:
             logger.warning("抓取流程: 未获取到学期 ID，无法继续抓取课表")
             return []
