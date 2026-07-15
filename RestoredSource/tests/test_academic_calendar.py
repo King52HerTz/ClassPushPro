@@ -9,6 +9,7 @@ if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
 from academic_calendar import (  # noqa: E402
+    merge_cached_teaching_state,
     normalize_teaching_state,
     week_number_for_date,
 )
@@ -50,6 +51,22 @@ class AcademicCalendarTests(unittest.TestCase):
         self.assertEqual(state["schedule_status"], "unknown")
         self.assertFalse(state["is_teaching_week"])
         self.assertIsNone(state["current_week"])
+
+    def test_active_cache_expires_after_last_available_week(self):
+        cached = {
+            "teaching_state": {
+                "schedule_status": "active",
+                "is_teaching_week": True,
+                "current_week": 19,
+                "available_weeks": list(range(2, 20)),
+                "week_one_monday": "2026-03-02",
+                "semester_id": "2025-2026-2",
+            }
+        }
+        state = merge_cached_teaching_state(cached, target_date=date(2026, 7, 20))
+        self.assertEqual(state["current_week"], 21)
+        self.assertEqual(state["schedule_status"], "vacation")
+        self.assertFalse(state["is_teaching_week"])
 
 
 if __name__ == "__main__":

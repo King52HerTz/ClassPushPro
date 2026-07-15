@@ -108,12 +108,27 @@ def week_number_for_date(week_one_monday, target_date):
     return (days // 7) + 1
 
 
-def merge_cached_teaching_state(cached_data):
+def merge_cached_teaching_state(cached_data, target_date=None):
     """兼容旧缓存；旧缓存没有状态时返回 unknown，避免把假期当第1周。"""
     cached = cached_data if isinstance(cached_data, dict) else {}
     state = cached.get("teaching_state")
     if isinstance(state, dict):
-        return state
+        resolved = dict(state)
+        if resolved.get("schedule_status") == SCHEDULE_STATUS_ACTIVE:
+            calculated_week = week_number_for_date(
+                resolved.get("week_one_monday", ""),
+                target_date or date.today(),
+            )
+            if calculated_week is not None:
+                resolved["current_week"] = calculated_week
+                available_weeks = resolved.get("available_weeks") or []
+                if available_weeks and calculated_week > max(available_weeks):
+                    resolved.update({
+                        "schedule_status": SCHEDULE_STATUS_VACATION,
+                        "is_teaching_week": False,
+                        "message": "缓存学期已超过最后教学周，请联网等待新学期课表",
+                    })
+        return resolved
     return {
         "schedule_status": SCHEDULE_STATUS_UNKNOWN,
         "is_teaching_week": False,

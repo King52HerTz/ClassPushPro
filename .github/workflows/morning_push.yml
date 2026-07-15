@@ -7,9 +7,17 @@ on:
     - cron: '0 23 * * *'
   workflow_dispatch: # 允许手动触发测试
 
+permissions:
+  contents: read
+
+concurrency:
+  group: classpush-cloud-state-${{ github.repository }}
+  cancel-in-progress: false
+
 jobs:
   push:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     
     # 设置时区为北京时间，方便日志查看
     env:
@@ -34,7 +42,11 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.ClassPush
-        key: classpush-${{ runner.os }}-v1
+        # Actions 缓存不可覆盖：每次用唯一 key 保存，再从统一前缀恢复最近一次状态。
+        key: classpush-state-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          classpush-state-${{ runner.os }}-${{ github.ref_name }}-
+          classpush-${{ runner.os }}-
 
     - name: Install dependencies
       run: |

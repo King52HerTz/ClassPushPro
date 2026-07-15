@@ -205,7 +205,7 @@ def run_push_task(force=False, source="auto"):
         cached_data = cached_data_preview or config.get_cached_courses()
         if cached_data:
             courses = cached_data.get("courses", [])
-            teaching_state = merge_cached_teaching_state(cached_data)
+            teaching_state = merge_cached_teaching_state(cached_data, target_date=target_date.date())
             cached_week = teaching_state.get("current_week")
             current_week = str(cached_week) if cached_week is not None else ""
             cache_update_ts = cached_data.get("update_time", "未知")
