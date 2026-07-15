@@ -31,7 +31,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.12'
         cache: 'pip'
 
     - name: Prepare ClassPush cache dir
@@ -51,8 +51,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        # 安装核心依赖 (剔除 GUI 相关库如 pywebview)
-        pip install requests pycryptodome beautifulsoup4 lxml
+        pip install -r RestoredSource/requirements-actions.txt
 
     - name: Run Push Task
       env:
@@ -61,7 +60,7 @@ jobs:
         CP_PASSWORD: ${{ secrets.CP_PASSWORD }}
         CP_APP_TOKEN: ${{ secrets.CP_APP_TOKEN }}
         CP_UID: ${{ secrets.CP_UID }}
-        # 可选：填入本地 ~/.ClassPush/config.json 的 Base64 内容，作为云端初始缓存
+        # 可选：将本地配置转为 Base64 后存入 Secret，禁止把 config.json 提交到仓库
         CP_CONFIG_JSON_B64: ${{ secrets.CP_CONFIG_JSON_B64 }}
         # 强制指定推送时间为 07:00，确保脚本识别为“早安推送”，只推今天的课
         CP_PUSH_TIME: "07:00"

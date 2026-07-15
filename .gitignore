@@ -52,7 +52,5 @@ Thumbs.db
 DEPLOYMENT_ANALYSIS.md
 OPTIMIZATION.md
 CONFIG_SETUP.md
-
-
-#忽略自己参考的md文件
-**/*.md
+FEATURE_PLAN.md
+docs/*_build_based_model.md

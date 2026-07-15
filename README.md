@@ -1,171 +1,118 @@
-# ClassPush - 湖工(Hnit)专属课程推送助手 🎓
+# ClassPush
 
-> 一个专为 Hnit 学子打造的桌面端课程推送工具，基于 Python + React + PyWebView 开发，对接强智教务系统，让你的课表触手可及。
+湖南工学院课表与成绩推送工具。桌面端负责查看课表、成绩和导出日历；云端版使用 GitHub Actions，即使电脑关机也能按时把消息发到 WxPusher。
 
-![ClassPush](https://img.shields.io/badge/Hnit-强智教务系统-blue) ![Platform](https://img.shields.io/badge/Platform-Windows-0078D6) ![Status](https://img.shields.io/badge/Status-Active-success)
+![Hnit](https://img.shields.io/badge/Hnit-强智教务系统-blue)
+![Platform](https://img.shields.io/badge/Platform-Windows-0078D6)
+![Python](https://img.shields.io/badge/Python-3.12-3776AB)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-## 📖 项目简介
+## 现在能做什么
 
-ClassPush 是一款轻量级的 Windows 桌面应用，旨在解决教务系统访问繁琐、容易忘记上课时间的问题。它能够自动登录湖南工学院（Hnit）的强智教务系统，抓取最新课表，并通过WxPusher app每天定时接收推送的次日的课程安排。
+- 自动登录湖南工学院强智教务系统并获取课表。
+- 根据 `isNowWeek` 区分正常教学周和假期，不会再把暑假当成“第2周”。
+- 开学后根据教务当前周次自动校准第1周周一，不需要每学期修改代码。
+- 早上推送今天课表，晚上推送明天课表。
+- 查看不同学期的成绩，检测新增成绩和成绩修改。
+- 将成绩变化整理成适合手机阅读的 HTML 卡片并推送。
+- 导出 ICS 日历，支持自定义节次时间和提醒时间。
+- 教务系统暂时不可用时使用最近一次有效缓存；超过最后教学周后旧缓存会自动失效。
 
-本项目不仅是一个实用的工具，也为对 **Python 爬虫**、**React 前端** 以及 **桌面应用开发** 感兴趣的同学提供了一个完整的参考案例。
+假期里看不到“下学期课表”是正常现象——学校还没发布的数据，程序也不能从空气里抓出来 qwq。等教务系统切换学期并发布课表后，刷新即可自动更新。
 
----
+## 两种使用方式
 
-## ✨ 核心功能
+### Windows 桌面版
 
-- ✅ **自动登录**：只需首次输入学号密码，后续自动完成教务系统认证。
-- 📅 **智能课表**：精准解析强智教务系统数据，自动识别当前周次、单双周课程。
-- 🔔 **微信推送**：每天定时（默认 20:00 或 07:00）推送课程提醒到WxPusher app，不再错过任何一节课。
-- 🚀 **开机自启**：支持开机静默启动，在此期间自动检测并执行推送任务。
-- 🛡️ **离线模式**：教务系统崩溃或网络不佳时，自动切换至本地缓存课表，保证查看无阻。
-- 🔒 **隐私安全**：所有账号密码均采用 AES 加密存储在本地用户目录，绝不上传任何第三方服务器。
+1. 在 [Releases](https://github.com/King52HerTz/ClassPushPro/releases) 下载 `ClassPush_Setup.exe`。
+2. 登录教务系统并填写 WxPusher UID。
+3. 根据需要开启课表推送、成绩推送和开机自启。
 
----
+桌面端配置保存在当前 Windows 用户目录下的 `.ClassPush` 文件夹。设置页里的“第1周周一”现在只是人工兜底，通常留空即可。
 
-## 🛠️ 技术栈 (For Developers)
+### GitHub Actions 云端版
 
-本项目采用前后端分离架构，通过 `pywebview` 将 Web 前端封装为本地桌面应用。
+1. Fork 本仓库。
+2. 打开仓库 `Settings → Secrets and variables → Actions`。
+3. 新建以下 Repository secrets：
 
-### 前端 (Frontend)
-- **框架**: [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
-- **UI 组件库**: [Ant Design (antd)](https://ant.design/)
-- **构建工具**: [Vite](https://vitejs.dev/)
-- **路由**: React Router
+| Secret | 说明 |
+| --- | --- |
+| `CP_USERNAME` | 教务系统学号 |
+| `CP_PASSWORD` | 教务系统密码 |
+| `CP_APP_TOKEN` | WxPusher 应用 AppToken |
+| `CP_UID` | 接收消息的 WxPusher UID |
+| `CP_CONFIG_JSON_B64` | 可选，本地配置的 Base64，用于首次建立缓存 |
 
-### 后端 (Backend)
-- **语言**: Python 3.8+
-- **GUI 容器**: [pywebview](https://pywebview.flowrl.com/) (轻量级浏览器内核)
-- **爬虫**: Requests + BeautifulSoup / Selenium (针对强智教务系统适配)
-- **加密**: PyCryptodome (AES 加密配置)
-- **任务调度**: Windows Task Scheduler (通过 win32com 调用)
+4. 打开 Actions，启用需要的工作流。
 
-### 打包与部署
-- **Python 打包**: [PyInstaller](https://pyinstaller.org/)
-- **安装包制作**: [Inno Setup](https://jrsoftware.org/isinfo.php)
+当前工作流：
 
----
+- `Morning Push (07:00)`：北京时间07:00推送当天课表。
+- `Night Push (20:00)`：北京时间20:00推送第二天课表。
+- `Grade Check (Hourly)`：北京时间07:17～23:17每小时检查一次成绩。
 
-## 🚀 快速开始 
+成绩工作流第一次运行只建立成绩基线，不会把历史成绩全部轰到手机上。之后只有新增成绩或成绩被修改时才推送。
 
-### 方案一：桌面版 (适合小白)
+> 不要把 `config.json`、学号、密码或 AppToken 提交到仓库。`config.json` 即使经过当前程序处理，也不适合放在公开 Git 历史中。可选缓存请按照 [云端部署教程](TUTORIAL.md) 转成 Base64 后存入 GitHub Secret。
 
-#### 1. 下载安装
-从 [Releases](https://github.com/King52HerTz/ClassPushPro/releases) 页面下载最新的安装包 `ClassPush_Setup.exe` 并安装。
+## 关于 AppToken
 
-#### 2. 初始化配置
-首次运行软件，点击 **"去设置"** 或 **"登录"**：
-- **学号/密码**：输入你的 Hnit 教务系统账号密码。
-- **UID**：这是用于WxPusher app推送的唯一标识。
-    - 点击输入框旁的 **"如何获取 UID"**。
-    - **需要自己注册应用并关注**（因为微信限制，不能共用同一个 AppToken）。
-    - 简单说：去 [WxPusher官网](https://wxpusher.zjiecode.com/admin/) 注册个应用 -> 拿 AppToken -> 扫码关注 -> 拿 UID。
-    - 详细步骤请参考软件内的帮助提示。
+官方桌面版继续兼容现有 WxPusher 应用和已有用户，本次升级不会轮换 AppToken，也不会要求已有用户重新关注。
 
-#### 3. 开启自动推送
-- 在设置页面开启 **"开机自启"**。
-- 设置你喜欢的 **"推送时间"** (建议晚上 20:00 推送次日课表，或早上 07:00 推送今日课表)。
-- 点击 **"保存配置"**。
+如果你 Fork 后给自己或同学单独部署，建议创建自己的 WxPusher 应用，并把 AppToken 放进 GitHub Secret。AppToken 是发送权限，不要贴在 Issue、截图、日志或聊天记录中。
 
-🎉 **大功告成！** 软件将会在后台静默运行，你只需要留意WxPusher app消息即可。
+## 开发
 
----
+项目结构：
 
-### 方案二：GitHub Actions 云端版 (强烈推荐) ☁️
-
-**无需下载软件，无需电脑开机，利用 GitHub 免费服务器每天自动推送！**
-
-👉 **[点击查看小白详细教程 (包含图文步骤)](TUTORIAL.md)** 👈
-
-简单四步：
-1.  **Fork** 本仓库。
-2.  在 **Settings -> Secrets** 中填入你的学号密码。
-3.  (强烈推荐) 上传本地 `config.json` 到仓库根目录，以开启**断网求生模式**。
-4.  在 **Actions** 中启用你想用的推送时间 (早安版/晚安版)。
-
-### 🔧 进阶玩法 (DIY)
-
-如果你熟悉 GitHub 操作，还可以自由定制推送逻辑！
-
-#### 1. 自定义推送时间
-想在每天早上 6:30 被课表叫醒？
-*   编辑 `.github/workflows/morning_push.yml` 文件。
-*   修改 `cron` 表达式：`cron: '30 22 * * *'` (注意：GitHub 使用 UTC 时间，比北京时间慢 8 小时，所以 6:30 - 8 = 前一天 22:30)。
-
-#### 2. 自定义推送文案
-想把“小主”改成“宝贝”，或者换个 Emoji？
-*   编辑 `src/run_job.py` 文件。
-*   搜索 `summary_title`，你可以在这里修改推送的标题和 HTML 样式，支持任意 Python 字符串操作。
-
----
-
-## 💻 开发指南 
-
-如果你想学习如何开发此类软件，或想为本项目贡献代码，请参考以下步骤：
-
-### 环境准备
-- Node.js 16+
-- Python 3.8+ (建议使用虚拟环境)
-
-### 1. 克隆项目
-```bash
-git clone https://github.com/King52HerTz/ClassPushPro.git
-cd ClassPushPro
+```text
+RestoredSource/
+├─ src/          Python 后端、教务适配和推送任务
+├─ frontend/     React + TypeScript 桌面界面
+└─ tests/        Python 单元测试
+.github/workflows/  云端课表、成绩和 CI 工作流
 ```
 
-### 2. 后端设置
-```bash
-# 创建虚拟环境
+环境要求：
+
+- Python 3.12
+- Node.js 20+
+- Windows 桌面打包需要 PyWebView、PyInstaller 和 Inno Setup
+
+后端：
+
+```powershell
 python -m venv .venv
-# 激活虚拟环境 (Windows)
-.venv\Scripts\activate
-
-# 安装依赖
+.venv\Scripts\Activate.ps1
 pip install -r RestoredSource/requirements.txt
+python RestoredSource/src/main.py
 ```
 
-### 3. 前端设置
-```bash
+前端：
+
+```powershell
 cd RestoredSource/frontend
-npm install
+npm ci
+npm run dev
 ```
 
-### 4. 运行开发模式
-**方式一 (推荐)**：
-1. 在一个终端运行前端：
-   ```bash
-   cd RestoredSource/frontend
-   npm run dev
-   ```
-2. 在另一个终端运行后端 (需激活虚拟环境)：
-   ```bash
-   # 回到项目根目录
-   python RestoredSource/src/main.py
-   ```
-   *注意：`main.py` 会自动检测本地 5173 端口的开发服务器。*
+运行检查：
 
-### 5. 打包发布
-本项目提供了一键构建脚本 `build_release.bat`，它会自动执行以下步骤：
-1. 编译 React 前端代码 (`npm run build`)。
-2. 使用 PyInstaller 打包 Python 后端为 EXE。
-3. (可选) 提示使用 Inno Setup 编译生成最终安装包。
-
-```bash
-# 在项目根目录运行
-.\build_release.bat
+```powershell
+python -m unittest discover -s RestoredSource/tests -v
+cd RestoredSource/frontend
+npm run build
 ```
 
----
+## 数据与使用说明
 
-## ⚠️ 免责声明
+- 桌面版的教务账号保存在本机；云端版会把账号放在你自己仓库的 GitHub Secrets 中。
+- 云端任务会访问教务系统、GitHub Actions 和 WxPusher，因此不能表述为“绝不上传任何第三方服务”。请根据自己的接受程度选择桌面版或云端版。
+- 程序只读取当前用户可正常访问的课表和成绩，不提供绕过认证、批量扫描或破坏教务系统的功能。
+- 请控制检查频率。默认成绩检查为每小时一次，不建议改成几分钟一次。
+- 教务系统字段或登录流程调整后，适配器可能需要更新，欢迎提交 Issue 或 Pull Request。
 
-1. 本项目仅供编程学习和技术交流使用，**严禁用于任何商业用途**。
-2. 本项目通过模拟登录方式获取数据，**不包含任何破坏计算机信息系统**的功能。
-3. 请妥善保管好自己的教务系统账号和密码，虽然软件已做加密处理，但使用者仍需对自己的账号安全负责。
-4. 如有侵权，请联系作者删除。
+## License
 
----
-
-## 📄 License
-
-MIT License
+[MIT License](LICENSE)

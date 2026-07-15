@@ -3,7 +3,6 @@ import sys
 import json
 import base64
 import socket
-import shutil
 import datetime
 import time
 import hashlib
@@ -127,17 +126,7 @@ def _restore_bootstrap_config():
         except Exception as e:
             print(f"Warning: Failed to restore config from CP_CONFIG_JSON_B64: {e}")
 
-    repo_config_path = os.path.join(current_dir, "..", "config.json")
-    if not os.path.exists(repo_config_path):
-        repo_config_path = os.path.join(current_dir, "config.json")
-
-    if os.path.exists(repo_config_path):
-        shutil.copy2(repo_config_path, target_path)
-        print(f"Config bootstrap: 已从仓库配置恢复到 {target_path}")
-        _print_config_cache_status(target_path, "repository")
-        return
-
-    print("Config bootstrap: 未发现可恢复的初始配置，后续仅能依赖在线抓取")
+    print("Config bootstrap: 未发现缓存或 CP_CONFIG_JSON_B64，将使用 GitHub Secrets 在线抓取")
 
 def _probe_school_network():
     host = "jw.hnit.edu.cn"
