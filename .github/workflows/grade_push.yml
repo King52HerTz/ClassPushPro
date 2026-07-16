@@ -1,9 +1,10 @@
-name: Grade Check (Hourly)
+name: Grade Check (Every 30 Minutes)
 
 on:
   schedule:
-    # 北京时间 07:17～23:17 每小时检查一次，避开整点高峰。
-    - cron: '17 0-15,23 * * *'
+    # 北京时间 07:11～23:41，每小时 11 分和 41 分检查一次。
+    # GitHub 定时任务可能延迟或漏掉单次触发，半小时双时间窗可提高及时性。
+    - cron: '11,41 0-15,23 * * *'
   workflow_dispatch:
 
 permissions:
