@@ -1,5 +1,5 @@
 #define MyAppName "ClassPush"
-#define MyAppVersion "2.0.0"
+#define MyAppVersion "2.1.0"
 #define MyAppPublisher "Eliauk"
 #define MyAppURL "https://github.com/King52HerTz/ClassPush"
 #define MyAppExeName "ClassPush.exe"
