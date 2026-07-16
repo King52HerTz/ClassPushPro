@@ -272,14 +272,16 @@ class GradeService:
             "push_result": push_result,
         }
 
-    def build_grade_push_message(self, new_items, updated_items=None):
+    def build_grade_push_message(self, new_items, updated_items=None, is_manual_full=False):
         items = self._sort_grade_items(new_items)
         updates = [item for item in (updated_items or []) if isinstance(item, dict)]
         count = len(items) + len(updates)
         if count <= 0:
             return "", "暂无新成绩"
 
-        if len(items) == 1 and not updates:
+        if is_manual_full:
+            summary = f"小主，本学期共 {len(items)} 门成绩"
+        elif len(items) == 1 and not updates:
             only = items[0]
             summary = f"新成绩：{only.get('course_name') or '未知课程'} {only.get('score') or '待公布'}"
         elif len(updates) == 1 and not items:
@@ -288,28 +290,53 @@ class GradeService:
         else:
             summary = f"成绩更新：新增 {len(items)} 门，修改 {len(updates)} 门"
 
-        cards = [self._build_grade_card(item, "新成绩") for item in items]
+        cards = [self._build_grade_card(item, "本学期成绩" if is_manual_full else "新成绩") for item in items]
         for update in updates:
             before = update.get("before", {}) if isinstance(update.get("before"), dict) else {}
             after = update.get("after", {}) if isinstance(update.get("after"), dict) else {}
             previous_score = str(before.get("score") or "--")
-            cards.append(self._build_grade_card(after, f"成绩修改 · 原分数 {previous_score}"))
+            badge = "本学期成绩" if is_manual_full else f"成绩修改 · 原分数 {previous_score}"
+            cards.append(self._build_grade_card(after, badge))
+
+        eyebrow = "CLASSPUSH · 本学期成绩" if is_manual_full else "CLASSPUSH · 成绩通知"
+        heading = "小主，本学期成绩单来啦" if is_manual_full else "小主，有新的成绩动态"
+        footer = "这是手动发送的本学期成绩，不会改变自动检测基线" if is_manual_full else "由 ClassPush 自动检查，仅在成绩变化时通知"
+        count_line = (
+            f"共 {len(items)} 门 · {html.escape(self._now_str())}"
+            if is_manual_full
+            else f"新增 {len(items)} 门 · 修改 {len(updates)} 门 · {html.escape(self._now_str())}"
+        )
 
         content = f"""
 <div style="margin:0;background:#f5f7fb;padding:18px 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;color:#182230;">
   <div style="max-width:620px;margin:0 auto;">
     <div style="background:linear-gradient(135deg,#1677ff,#69b1ff);border-radius:18px;padding:22px;color:#fff;box-shadow:0 10px 28px rgba(22,119,255,.20);">
-      <div style="font-size:13px;opacity:.86;letter-spacing:1px;">CLASSPUSH · 成绩通知</div>
-      <div style="font-size:24px;font-weight:750;margin-top:8px;">有新的成绩动态</div>
-      <div style="font-size:14px;opacity:.9;margin-top:6px;">新增 {len(items)} 门 · 修改 {len(updates)} 门 · {html.escape(self._now_str())}</div>
+      <div style="font-size:13px;opacity:.86;letter-spacing:1px;">{eyebrow}</div>
+      <div style="font-size:24px;font-weight:750;margin-top:8px;">{heading}</div>
+      <div style="font-size:14px;opacity:.9;margin-top:6px;">{count_line}</div>
     </div>
     <div style="margin-top:14px;">{''.join(cards)}</div>
     <a href="https://jw.hnit.edu.cn/" style="display:block;margin-top:16px;padding:13px 16px;text-align:center;background:#182230;color:#fff;text-decoration:none;border-radius:12px;font-weight:650;">打开教务系统核对成绩 →</a>
-    <div style="text-align:center;color:#98a2b3;font-size:12px;margin:14px 0 4px;">由 ClassPush 自动检查，仅在成绩变化时通知</div>
+    <div style="text-align:center;color:#98a2b3;font-size:12px;margin:14px 0 4px;">{footer}</div>
   </div>
 </div>
 """.strip()
         return content, summary
+
+    def send_current_term_grades(self):
+        result = self.get_grades()
+        grades = [item for item in result.get("grades", []) if isinstance(item, dict)]
+        if not grades:
+            return False, "当前学期还没有成绩可以推送"
+
+        app_token = self.config.get("app_token")
+        uid = self.config.get("uid")
+        if not app_token or not uid:
+            return False, "WxPusher 配置不完整，请先在设置页保存 UID"
+
+        content, summary = self.build_grade_push_message(grades, is_manual_full=True)
+        pusher = Pusher(app_token)
+        return pusher.send([uid], content, summary=summary, content_type=2)
 
     def _build_grade_card(self, item, badge):
         item = item if isinstance(item, dict) else {}

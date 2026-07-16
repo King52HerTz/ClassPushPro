@@ -2,6 +2,7 @@ import argparse
 import os
 import sys
 import datetime
+import html
 from logger import logger
 from config_manager import ConfigManager
 from content_service import WeatherContentService
@@ -206,6 +207,16 @@ def run_push_task(force=False, source="auto"):
     schedule_status = teaching_state.get("schedule_status", "unknown")
     if schedule_status != "active":
         status_message = teaching_state.get("message") or "当前不处于正常教学周"
+        if source == "manual":
+            content, title = _generate_non_teaching_push_content(schedule_status, status_message)
+            logger.info(f"当前为非教学周，响应手动操作发送假期/未发布提示: status={schedule_status}")
+            success, push_message = Pusher(app_token).send([uid], content, summary=title, content_type=2)
+            if success:
+                now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+                config.update_last_push_time(now_str)
+                config.update_last_manual_push_time(now_str)
+                return True, "假期课表消息推送成功"
+            return False, f"推送失败: {push_message}"
         logger.info("课表推送已跳过: status=%s, message=%s", schedule_status, status_message)
         return True, f"已跳过课表推送：{status_message}"
     
@@ -379,6 +390,47 @@ def _generate_weather_section(weather_summary):
         <div class="weather-time">更新时间：{fetched_at}</div>
     </div>
     """
+
+
+def _generate_non_teaching_push_content(schedule_status, status_message=""):
+    if schedule_status == "vacation":
+        title = "小主，今天的课程也去放假了 🏖️"
+        eyebrow = "CLASSPUSH · 假期模式"
+        emoji = "🏖️"
+        headline = "今日课程：0 节"
+        copy = "系统认真翻遍了教务课表，发现课程也集体去度假了。放心睡，不会错过早八——因为今天根本没有早八。"
+        tip = "等学校发布新学期课表，ClassPush 会自动结束摸鱼并重新上岗。"
+    elif schedule_status == "unpublished":
+        title = "小主，新学期课表还在赶来的路上 ⏳"
+        eyebrow = "CLASSPUSH · 等待开学"
+        emoji = "📭"
+        headline = "课表暂未发布"
+        copy = "不是程序偷懒，是学校还没有把新课表端上来。现在反复刷新，只能锻炼手指。"
+        tip = "课表发布后刷新即可自动获取，不需要手动修改第 1 周日期。"
+    else:
+        title = "小主，教务系统今天有自己的想法 🤔"
+        eyebrow = "CLASSPUSH · 状态未知"
+        emoji = "🫠"
+        headline = "暂时无法确认课表"
+        copy = "为了不把旧课表当成今天的安排发给你，ClassPush 选择先稳一手。"
+        tip = "稍后联网重试即可，至少今天没有被一张穿越的课表骗去教室。"
+
+    safe_message = html.escape(str(status_message or ""))
+    detail = f'<div style="margin-top:12px;color:#667085;font-size:13px;">教务状态：{safe_message}</div>' if safe_message else ""
+    content = f"""
+<div style="margin:0;background:#f5f9ff;padding:18px 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif;color:#1f2937;">
+  <div style="max-width:620px;margin:0 auto;background:#fff;border:1px solid #d6e4ff;border-radius:18px;padding:24px;box-shadow:0 8px 24px rgba(24,144,255,.10);">
+    <div style="font-size:12px;letter-spacing:1px;color:#1677ff;">{eyebrow}</div>
+    <div style="font-size:52px;margin:18px 0 10px;">{emoji}</div>
+    <div style="font-size:24px;font-weight:750;">{headline}</div>
+    <div style="margin-top:14px;font-size:15px;line-height:1.9;color:#475467;">{copy}</div>
+    <div style="margin-top:16px;padding:12px 14px;background:#e6f7ff;border-left:4px solid #69c0ff;border-radius:8px;color:#175cd3;font-size:14px;line-height:1.7;">{tip}</div>
+    {detail}
+    <div style="margin-top:20px;padding-top:14px;border-top:1px dashed #d6e4ff;text-align:center;color:#98a2b3;font-size:12px;">ClassPush 手动课表推送</div>
+  </div>
+</div>
+""".strip()
+    return content, title
 
 
 def _generate_push_content(courses, date_str, weekday_str, is_delayed=False, is_offline_mode=False, weather_summary=None):

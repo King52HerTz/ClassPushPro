@@ -119,6 +119,18 @@ class GradeServiceTests(unittest.TestCase):
         self.assertIn("打开教务系统", content)
         self.assertNotIn("Web <script>", content)
 
+    def test_manual_full_term_message_contains_every_grade_and_xiaozhu(self):
+        content, summary = self.service.build_grade_push_message(
+            [grade(80, "one", "数据结构"), grade(92, "two", "计算机网络")],
+            is_manual_full=True,
+        )
+
+        self.assertIn("小主", summary)
+        self.assertIn("共 2 门", content)
+        self.assertIn("数据结构", content)
+        self.assertIn("计算机网络", content)
+        self.assertIn("不会改变自动检测基线", content)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,19 +4,23 @@
 }
 
 .grades-card {
-    border: 1px solid #eaecf0 !important;
+    border: 1px solid #d6e4ff !important;
     border-radius: 14px !important;
-    box-shadow: 0 4px 14px rgba(16, 24, 40, 0.04) !important;
+    box-shadow: 0 4px 14px rgba(24, 144, 255, 0.07) !important;
 }
 
 .grades-table .ant-table-thead > tr > th {
-    background: #f8fafc;
-    color: #475467;
+    background: #e6f7ff;
+    color: #1f2937;
     font-weight: 650;
 }
 
+.grades-table .ant-table-tbody > tr:nth-child(even) > td {
+    background: #fafcff;
+}
+
 .grades-table .ant-table-tbody > tr:hover > td {
-    background: #f5f9ff !important;
+    background: #f0f5ff !important;
 }
 
 .grade-course-cell {
@@ -34,6 +38,43 @@
     font-weight: 750;
 }
 
+.grade-score.is-passed {
+    color: #389e0d;
+}
+
+.grade-score.is-failed {
+    color: #d64545;
+}
+
+.grade-push-switch {
+    margin-left: 8px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    color: #1677ff;
+    background: #e6f7ff;
+    border: 1px solid #91caff;
+}
+
+.grade-owner-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #e6f7ff 0%, #e6fffb 100%);
+    border: 1px solid #91caff;
+}
+
+.grade-owner-label {
+    color: #667085;
+}
+
+.grade-owner-name {
+    color: #1f2937;
+    font-size: 18px;
+}
+
 .grade-meta-row {
     display: flex;
     justify-content: space-between;
@@ -48,5 +89,9 @@
 
     .grades-toolbar-actions {
         justify-content: flex-start !important;
+    }
+
+    .grade-push-switch {
+        margin-left: 0;
     }
 }

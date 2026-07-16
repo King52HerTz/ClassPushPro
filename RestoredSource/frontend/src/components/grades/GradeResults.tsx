@@ -26,7 +26,7 @@ const columns: ColumnsType<GradeItem> = [
         render: (value: string) => {
             const score = Number(value);
             const failed = (Number.isFinite(score) && score < 60) || value === '不及格';
-            return <Text className="grade-score" type={failed ? 'danger' : 'success'}>{value || '--'}</Text>;
+            return <Text className={`grade-score ${failed ? 'is-failed' : 'is-passed'}`}>{value || '--'}</Text>;
         }
     },
     {
@@ -34,7 +34,7 @@ const columns: ColumnsType<GradeItem> = [
         dataIndex: 'credit',
         key: 'credit',
         width: 76,
-        render: (value: string) => <Text>{value || '--'}</Text>
+        render: (value: string) => <Tag bordered={false} color="blue">{value || '--'}</Tag>
     },
     {
         title: '绩点',
@@ -50,8 +50,8 @@ const columns: ColumnsType<GradeItem> = [
         responsive: ['md'],
         render: (_, record) => (
             <Space size={[4, 4]} wrap>
-                <Tag bordered={false}>{record.exam_name || '--'}</Tag>
-                <Tag bordered={false} color="blue">{record.examination_nature || '--'}</Tag>
+                <Tag bordered={false} color="cyan">{record.exam_name || '--'}</Tag>
+                <Tag bordered={false} color="geekblue">{record.examination_nature || '--'}</Tag>
             </Space>
         )
     },

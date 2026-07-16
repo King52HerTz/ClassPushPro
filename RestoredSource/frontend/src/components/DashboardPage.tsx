@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Button, Row, Col, message, Typography, List, Modal } from 'antd';
-import { ThunderboltFilled, CalendarOutlined, CopyOutlined, DeleteOutlined, RightOutlined, DownOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { ThunderboltFilled, CalendarOutlined, CopyOutlined, DeleteOutlined, RightOutlined, DownOutlined, ExclamationCircleOutlined, TrophyOutlined } from '@ant-design/icons';
 import { api } from '../api';
 import dayjs from 'dayjs';
 import type { AppConfig, SystemStatusData } from '../types';
@@ -19,6 +19,7 @@ import { compareVersions, cleanVersion } from '../utils';
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     const [loading, setLoading] = useState(false);
+    const [gradePushing, setGradePushing] = useState(false);
     const [config, setConfig] = useState<Partial<AppConfig>>({});
     const [logs, setLogs] = useState<string[]>([]);
     const [schedulerActive, setSchedulerActive] = useState(false);
@@ -231,23 +232,48 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         }
     };
 
-    const handleManualPush = async () => {
+    const handleManualPush = () => {
         const todayStr = dayjs().format('YYYY-MM-DD');
         const pushedToday = lastManualPushDate === todayStr;
-        if (!pushedToday) {
-            await doManualPush(false);
-            return;
-        }
-
         Modal.confirm({
-            title: '今日已推送过',
+            title: pushedToday ? '今天已经推送过课表' : '确认推送课表？',
             icon: <ExclamationCircleOutlined />,
-            content: `系统检测到今日 (${todayStr}) 已经成功执行过推送任务。是否强制再次推送？`,
-            okText: '强制推送',
+            content: pushedToday
+                ? `系统检测到今天（${todayStr}）已经成功推送过课表。继续操作会再发送一条，确定吗？`
+                : '将按照当前设置的时间规则生成课表消息并发送到手机，确定继续吗？',
+            okText: pushedToday ? '仍然推送' : '确认推送',
             cancelText: '取消',
             onOk: async () => {
-                await doManualPush(true);
+                await doManualPush(pushedToday);
             }
+        });
+    };
+
+    const doManualGradePush = async () => {
+        setGradePushing(true);
+        try {
+            const res = await api.manualGradePush();
+            if (res.status === 'success') {
+                message.success(res.message || '本学期成绩已发送，请检查手机');
+                setLogs(prev => [`${dayjs().format('YYYY-MM-DD HH:mm:ss')} [INFO] 手动推送本学期全部成绩`, ...prev]);
+            } else {
+                message.error(res.message || '成绩推送失败');
+            }
+        } catch (e) {
+            message.error('成绩推送失败，请检查教务系统和 WxPusher 配置');
+        } finally {
+            setGradePushing(false);
+        }
+    };
+
+    const handleManualGradePush = () => {
+        Modal.confirm({
+            title: '确认推送本学期全部成绩？',
+            icon: <ExclamationCircleOutlined />,
+            content: '这会把当前学期已经公布的全部成绩发送到手机，不会修改自动成绩检测的基线。确定继续吗？',
+            okText: '确认推送',
+            cancelText: '取消',
+            onOk: doManualGradePush,
         });
     };
 
@@ -338,8 +364,8 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                         style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}
                         bodyStyle={{ padding: 24 }}
                     >
-                        <Row gutter={16}>
-                            <Col span={6}>
+                        <Row gutter={[16, 16]}>
+                            <Col xs={24} sm={12} lg={6}>
                                 <Button 
                                     type="primary" 
                                     block 
@@ -348,10 +374,21 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                                     onClick={handleManualPush}
                                     style={{ height: 45, borderRadius: 8, fontSize: 15 }}
                                 >
-                                    立即推送
+                                    推送课表
                                 </Button>
                             </Col>
-                            <Col span={6}>
+                            <Col xs={24} sm={12} lg={6}>
+                                <Button
+                                    block
+                                    icon={<TrophyOutlined />}
+                                    loading={gradePushing}
+                                    onClick={handleManualGradePush}
+                                    style={{ height: 45, borderRadius: 8, fontSize: 15, borderColor: '#1890ff', color: '#1890ff', background: '#e6f7ff' }}
+                                >
+                                    推送成绩
+                                </Button>
+                            </Col>
+                            <Col xs={24} sm={12} lg={4}>
                                 <Button 
                                     block 
                                     icon={<CalendarOutlined />} 
@@ -361,7 +398,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                                     预览课表
                                 </Button>
                             </Col>
-                            <Col span={6}>
+                            <Col xs={24} sm={12} lg={4}>
                                 <Button 
                                     block 
                                     icon={<CopyOutlined />} 
@@ -374,7 +411,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                                     复制日志
                                 </Button>
                             </Col>
-                            <Col span={6}>
+                            <Col xs={24} sm={12} lg={4}>
                                 <Button 
                                     block 
                                     icon={<DeleteOutlined />} 

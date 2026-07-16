@@ -28,6 +28,7 @@ declare global {
                 get_grades: (semesterId?: string) => Promise<ApiResponse<GradeQueryData>>;
                 refresh_grades: (semesterId?: string) => Promise<ApiResponse<GradeQueryData>>;
                 check_new_grades: () => Promise<ApiResponse<GradeCheckData>>;
+                manual_grade_push: () => Promise<ApiResponse<null>>;
                 save_grade_push_settings: (enable: boolean) => Promise<ApiResponse<null>>;
                 export_calendar_ics: (scope?: 'current_week' | 'next_7_days' | 'term') => Promise<ApiResponse<CalendarExportData>>;
             }
@@ -118,6 +119,12 @@ export const api = {
     checkNewGrades: async (): Promise<ApiResponse<GradeCheckData>> => {
         if (window.pywebview?.api?.check_new_grades) {
             return await window.pywebview.api.check_new_grades();
+        }
+        return { status: 'error', message: 'API未就绪' };
+    },
+    manualGradePush: async (): Promise<ApiResponse<null>> => {
+        if (window.pywebview?.api?.manual_grade_push) {
+            return await window.pywebview.api.manual_grade_push();
         }
         return { status: 'error', message: 'API未就绪' };
     },

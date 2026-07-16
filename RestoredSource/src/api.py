@@ -393,6 +393,18 @@ class Api:
             logger.exception("检查新成绩失败")
             return {"status": "error", "message": f"检查新成绩失败: {e}"}
 
+    def manual_grade_push(self):
+        """手动发送当前学期全部成绩，不修改成绩检测基线"""
+        try:
+            success, message = self.grade_service.send_current_term_grades()
+            return {
+                "status": "success" if success else "error",
+                "message": "本学期成绩已发送，请检查手机" if success else message,
+            }
+        except Exception as e:
+            logger.exception("手动发送本学期成绩失败")
+            return {"status": "error", "message": f"成绩推送失败: {e}"}
+
     def save_grade_push_settings(self, enable):
         """保存成绩自动推送开关"""
         try:

@@ -290,6 +290,7 @@ if __name__ == '__main__':
         api.get_grades,
         api.refresh_grades,
         api.check_new_grades,
+        api.manual_grade_push,
         api.save_grade_push_settings,
         api.manual_push,
         api.ignore_missed_push,

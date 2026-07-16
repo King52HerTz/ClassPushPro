@@ -11,7 +11,7 @@ if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
 from config_manager import ConfigManager  # noqa: E402
-from run_job import _schedule_push_key, run_push_task  # noqa: E402
+from run_job import _generate_non_teaching_push_content, _schedule_push_key, run_push_task  # noqa: E402
 
 
 class SchedulePushDedupeTests(unittest.TestCase):
@@ -80,6 +80,14 @@ class SchedulePushDedupeTests(unittest.TestCase):
         self.assertTrue(config.checked_key.startswith("morning:"))
         self.assertIn("已推送", message)
         login_manager.assert_not_called()
+
+    def test_vacation_manual_message_keeps_xiaozhu_tone(self):
+        content, summary = _generate_non_teaching_push_content("vacation", "当前是假期")
+
+        self.assertIn("小主", summary)
+        self.assertIn("今日课程：0 节", content)
+        self.assertIn("根本没有早八", content)
+        self.assertIn("课程也集体去度假", content)
 
 
 if __name__ == "__main__":

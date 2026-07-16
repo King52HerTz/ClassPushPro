@@ -377,8 +377,8 @@ const GradesPage: React.FC = () => {
                                     <Button size="large" type="primary" icon={<SearchOutlined />} onClick={handleCheckNewGrades} loading={checking}>
                                         检测新成绩
                                     </Button>
-                                    <Space size="small" style={{ marginLeft: 8, background: '#f5f5f5', padding: '8px 16px', borderRadius: 8 }}>
-                                        <BellOutlined style={{ color: '#1890ff' }} />
+                                    <Space size="small" className="grade-push-switch">
+                                        <BellOutlined />
                                         <Text strong>新成绩自动推送</Text>
                                         <Switch
                                             checked={gradePushEnabled}
@@ -427,9 +427,9 @@ const GradesPage: React.FC = () => {
                         <Text strong style={{ display: 'block', marginBottom: 12 }}>学期与数据</Text>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                             {studentInfo.student_name && (
-                                <div className="grade-meta-row">
-                                    <Text type="secondary">学生</Text>
-                                    <Text strong>{studentInfo.student_name}</Text>
+                                <div className="grade-owner-row">
+                                    <Text className="grade-owner-label">小主姓名</Text>
+                                    <Text strong className="grade-owner-name">{studentInfo.student_name}</Text>
                                 </div>
                             )}
                             <div className="grade-meta-row">
@@ -452,8 +452,7 @@ const GradesPage: React.FC = () => {
                     <Card
                         bordered={false}
                         className="grades-card"
-                        title={<span style={{ fontSize: 18, fontWeight: 600 }}>成绩列表</span>}
-                        styles={{ body: { padding: '0 0 16px 0' }, header: { borderBottom: 'none', padding: '20px 24px 8px 24px' } }}
+                        styles={{ body: { padding: '0 0 16px 0' } }}
                     >
                         <GradeResults grades={grades} loading={loading} hasSelectedSemester={Boolean(selectedSemesterId)} />
                     </Card>
