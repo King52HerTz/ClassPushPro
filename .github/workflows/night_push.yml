@@ -1,10 +1,10 @@
-name: Night Push (20:00)
+name: Night Push (20:00 + retries)
 
 on:
   schedule:
-    # 每天北京时间 20:00 运行 (UTC 时间 12:00)
-    # 晚上推送第二天的课表
-    - cron: '0 12 * * *'
+    # 北京时间 20:00、20:20、20:40 检查明天课表。
+    # 首次成功后，后续场次会命中日期去重键并直接跳过，不会重复调用 WxPusher。
+    - cron: '0,20,40 12 * * *'
   workflow_dispatch: # 允许手动触发测试
 
 permissions:
@@ -62,6 +62,7 @@ jobs:
         # 可选：将本地配置转为 Base64 后存入 Secret，禁止把 config.json 提交到仓库
         CP_CONFIG_JSON_B64: ${{ secrets.CP_CONFIG_JSON_B64 }}
         CP_PUSH_TIME: "20:00"
+        CP_PUSH_SLOT: "night"
         # 手动触发和定时触发都关闭抖动延迟，避免卡住数分钟
         CP_JITTER_MAX_SECONDS: "0"
         # 教务站点失败时尽快回退到缓存，避免 Actions 长时间卡住

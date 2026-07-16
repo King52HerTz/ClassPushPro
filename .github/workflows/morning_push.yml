@@ -1,10 +1,10 @@
-name: Morning Push (07:00)
+name: Morning Push (07:00 + retries)
 
 on:
   schedule:
-    # 每天北京时间 07:00 运行 (UTC 时间 23:00)
-    # 早上推送今天的课表
-    - cron: '0 23 * * *'
+    # 北京时间 07:00、07:20、07:40 检查今天课表。
+    # 首次成功后，后续场次会命中日期去重键并直接跳过，不会重复调用 WxPusher。
+    - cron: '0,20,40 23 * * *'
   workflow_dispatch: # 允许手动触发测试
 
 permissions:
@@ -64,6 +64,7 @@ jobs:
         CP_CONFIG_JSON_B64: ${{ secrets.CP_CONFIG_JSON_B64 }}
         # 强制指定推送时间为 07:00，确保脚本识别为“早安推送”，只推今天的课
         CP_PUSH_TIME: "07:00"
+        CP_PUSH_SLOT: "morning"
         # 手动触发和定时触发都关闭抖动延迟，避免卡住数分钟
         CP_JITTER_MAX_SECONDS: "0"
         # 教务站点失败时尽快回退到缓存，避免 Actions 长时间卡住

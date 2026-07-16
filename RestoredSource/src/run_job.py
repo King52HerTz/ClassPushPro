@@ -14,6 +14,12 @@ from academic_calendar import merge_cached_teaching_state, week_number_for_date
 WEEKDAYS = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"]
 
 
+def _schedule_push_key(is_morning_push, target_date):
+    date_value = target_date.date() if isinstance(target_date, datetime.datetime) else target_date
+    slot = "morning" if is_morning_push else "night"
+    return f"{slot}:{date_value.isoformat()}"
+
+
 def run_grade_check_task(config=None):
     """
     执行一次成绩自动检测。
@@ -43,7 +49,7 @@ def run_push_task(force=False, source="auto"):
     """
     执行一次完整的推送任务
     包含智能补发与过期处理机制
-    :param force: 是否强制推送 (忽略今日已推检查)
+    :param force: 是否强制推送 (忽略相同场次与课表日期的成功记录)
     """
     if source not in ("auto", "manual"):
         source = "auto"
@@ -57,7 +63,6 @@ def run_push_task(force=False, source="auto"):
     uid = config.get("uid")
     push_time_str = (os.getenv("CP_PUSH_TIME") or "").strip() or config.get("push_time", "20:00")
     last_push_time_str = config.get("last_push_success_time", "")
-    last_auto_push_time_str = config.get("last_auto_push_success_time", "")
     cached_data_preview = config.get_cached_courses()
     has_bootstrap_cache = bool(cached_data_preview and cached_data_preview.get("courses"))
     bootstrap_cache_count = len(cached_data_preview.get("courses", [])) if cached_data_preview else 0
@@ -77,46 +82,16 @@ def run_push_task(force=False, source="auto"):
 
     # ---- 智能补发逻辑判断 ----
     now = datetime.datetime.now()
-    today_str = now.strftime("%Y-%m-%d")
-    
-    # 检查是否今日已推送 (仅在非强制模式下检查)
-    today_guard_time_str = last_auto_push_time_str if source == "auto" else last_push_time_str
-    if not force and today_guard_time_str:
+
+    # 手动任务沿用“当天只自动执行一次”的旧保护；手动测试按钮会传 force=True。
+    if source == "manual" and not force and last_push_time_str:
         try:
-            last_push_dt = datetime.datetime.strptime(today_guard_time_str, "%Y-%m-%d %H:%M:%S")
+            last_push_dt = datetime.datetime.strptime(last_push_time_str, "%Y-%m-%d %H:%M:%S")
             if last_push_dt.date() == now.date():
-                # 默认跳过
-                should_skip = True
-                
-                # 特殊逻辑：如果是自动任务，尝试检测是否为“修改时间后的重新触发”
-                if source == "auto":
-                    try:
-                        # 1. 解析配置的目标时间
-                        ph, pm = map(int, push_time_str.split(':'))
-                        # 构造今天的目标时间点
-                        target_dt = now.replace(hour=ph, minute=pm, second=0, microsecond=0)
-                        
-                        # 2. 检查当前时间是否在目标时间的“正点范围”内 (比如前后5分钟)
-                        # 这意味着任务是按计划准时启动的
-                        time_diff = abs((now - target_dt).total_seconds())
-                        is_on_time = time_diff < 300 # 5分钟内
-
-                        # 3. 检查上次推送距离现在多久
-                        # 如果上次推送就在刚才(10分钟内)，那肯定是重复触发，必须跳过
-                        last_push_diff = (now - last_push_dt).total_seconds()
-                        is_just_pushed = last_push_diff < 600 
-
-                        if is_on_time and not is_just_pushed:
-                            should_skip = False
-                            logger.info(f"检测到正点运行({push_time_str})且上次推送已久，允许再次推送")
-                    except Exception as e:
-                        logger.warning(f"防重逻辑解析异常: {e}")
-
-                if should_skip:
-                    logger.info(f"今日已执行过推送({today_guard_time_str})，跳过")
-                    return True, "今日已推送"
+                logger.info(f"今日已执行过手动推送({last_push_time_str})，跳过")
+                return True, "今日已推送"
         except Exception:
-            pass # 解析失败则忽略，继续执行
+            pass
 
     # 解析设定的推送时间
     try:
@@ -127,7 +102,11 @@ def run_push_task(force=False, source="auto"):
     # 判断是“晨间推送”还是“晚间推送”
     # 晨间推送 (04:00 - 13:59): 意图是看“今天”的课表
     # 晚间推送 (14:00 - 03:59): 意图是看“明天”的课表
-    is_morning_push = 4 <= push_hour < 14
+    configured_slot = (os.getenv("CP_PUSH_SLOT") or "").strip().lower()
+    if configured_slot in ("morning", "night"):
+        is_morning_push = configured_slot == "morning"
+    else:
+        is_morning_push = 4 <= push_hour < 14
     
     target_date = None
     is_delayed = False
@@ -145,6 +124,11 @@ def run_push_task(force=False, source="auto"):
         # 晚间推送：默认目标是明天
         target_date = now + datetime.timedelta(days=1)
         # 晚间推送一般不需要“延迟”概念，因为即使晚了也是推明天的
+
+    schedule_push_key = _schedule_push_key(is_morning_push, target_date)
+    if source == "auto" and not force and config.has_successful_schedule_push(schedule_push_key):
+        logger.info(f"场次 {schedule_push_key} 已成功推送，当前为补发检查，跳过")
+        return True, f"该场次已推送：{schedule_push_key}"
 
     # 3. 抓取课表
     courses = []
@@ -237,6 +221,12 @@ def run_push_task(force=False, source="auto"):
         else:
             logger.info("今日仍有课程，继续推送今日课表 (带延迟标记)")
 
+    # 延迟晨间任务可能把目标切换到明天，因此按最终目标日期再次核对去重键。
+    schedule_push_key = _schedule_push_key(is_morning_push, target_date)
+    if source == "auto" and not force and config.has_successful_schedule_push(schedule_push_key):
+        logger.info(f"最终场次 {schedule_push_key} 已成功推送，跳过")
+        return True, f"该场次已推送：{schedule_push_key}"
+
     # 4. 筛选目标日期课程
     target_weekday = target_date.weekday()
     target_xqmc = WEEKDAYS[target_weekday]
@@ -282,6 +272,8 @@ def run_push_task(force=False, source="auto"):
     if success:
         logger.info("阶段[3/3] 推送成功")
         now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+        if source == "auto" and not config.mark_successful_schedule_push(schedule_push_key):
+            logger.warning(f"推送成功，但场次去重状态保存失败: {schedule_push_key}")
         config.update_last_push_time(now_str)
         if source == "auto":
             config.update_last_auto_push_time(now_str)

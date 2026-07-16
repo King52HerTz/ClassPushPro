@@ -104,6 +104,9 @@ class ConfigManager:
                 "last_push_success_time": encrypted_data.get("last_push_success_time", ""),
                 "last_auto_push_success_time": encrypted_data.get("last_auto_push_success_time", ""),
                 "last_manual_push_success_time": encrypted_data.get("last_manual_push_success_time", ""),
+                "successful_schedule_push_keys": self._normalize_schedule_push_keys(
+                    encrypted_data.get("successful_schedule_push_keys", [])
+                ),
                 "last_ignored_push_date": encrypted_data.get("last_ignored_push_date", ""),
                 "jw_cached_username": encrypted_data.get("jw_cached_username", ""),
                 "jw_cached_token": self._decrypt(encrypted_data.get("jw_cached_token", "")),
@@ -223,6 +226,9 @@ class ConfigManager:
             "last_push_success_time": self.config_data.get("last_push_success_time", ""),
             "last_auto_push_success_time": self.config_data.get("last_auto_push_success_time", ""),
             "last_manual_push_success_time": self.config_data.get("last_manual_push_success_time", ""),
+            "successful_schedule_push_keys": self._normalize_schedule_push_keys(
+                self.config_data.get("successful_schedule_push_keys", [])
+            ),
             "last_ignored_push_date": self.config_data.get("last_ignored_push_date", ""),
             "jw_cached_username": jw_cached_username,
             "jw_cached_token": self._encrypt(jw_cached_token),
@@ -257,6 +263,34 @@ class ConfigManager:
         if not isinstance(timestamp_str, str) or not timestamp_str:
             return False
         self.config_data["last_manual_push_success_time"] = timestamp_str
+        return self._save_current_config()
+
+    @staticmethod
+    def _normalize_schedule_push_keys(value):
+        if not isinstance(value, list):
+            return []
+        normalized = []
+        for item in value:
+            key = str(item or "").strip()
+            if re.fullmatch(r"(?:morning|night):\d{4}-\d{2}-\d{2}", key) and key not in normalized:
+                normalized.append(key)
+        return normalized[-32:]
+
+    def has_successful_schedule_push(self, push_key):
+        return push_key in self._normalize_schedule_push_keys(
+            self.config_data.get("successful_schedule_push_keys", [])
+        )
+
+    def mark_successful_schedule_push(self, push_key):
+        normalized_key = str(push_key or "").strip()
+        if not re.fullmatch(r"(?:morning|night):\d{4}-\d{2}-\d{2}", normalized_key):
+            return False
+        keys = self._normalize_schedule_push_keys(
+            self.config_data.get("successful_schedule_push_keys", [])
+        )
+        keys = [key for key in keys if key != normalized_key]
+        keys.append(normalized_key)
+        self.config_data["successful_schedule_push_keys"] = keys[-32:]
         return self._save_current_config()
 
     def update_last_ignored_date(self, date_str):
@@ -319,6 +353,9 @@ class ConfigManager:
             "last_push_success_time": self.config_data.get("last_push_success_time", ""),
             "last_auto_push_success_time": self.config_data.get("last_auto_push_success_time", ""),
             "last_manual_push_success_time": self.config_data.get("last_manual_push_success_time", ""),
+            "successful_schedule_push_keys": self._normalize_schedule_push_keys(
+                self.config_data.get("successful_schedule_push_keys", [])
+            ),
             "last_ignored_push_date": self.config_data.get("last_ignored_push_date", ""),
             "jw_cached_username": self.config_data.get("jw_cached_username", ""),
             "jw_cached_token": self._encrypt(self.config_data.get("jw_cached_token", "")),

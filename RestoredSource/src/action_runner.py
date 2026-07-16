@@ -172,8 +172,8 @@ if __name__ == "__main__":
         success, result = run_grade_check_task()
         msg = result.get("push_result", {}).get("message") or result.get("message") or "成绩检查完成"
     else:
-        # force=True: Actions 的晨间/晚间工作流本身已经负责调度。
-        success, msg = run_push_task(force=True, source="auto")
+        # 补发工作流会重复唤醒任务，具体是否已经成功推送由课表日期键判断。
+        success, msg = run_push_task(force=False, source="auto")
 
     if success:
         print(f"SUCCESS: {msg}")
