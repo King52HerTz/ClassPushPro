@@ -6,6 +6,12 @@ export interface ApiResponse<T = unknown> {
   action?: string;
 }
 
+export interface UpdateDownloadData {
+  file_path: string;
+  file_name: string;
+  version: string;
+}
+
 export interface AppConfig {
   username: string;
   password: string;

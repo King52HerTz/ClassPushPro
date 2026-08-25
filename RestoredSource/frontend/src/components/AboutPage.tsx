@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Card, Typography, Tag, Button, Space, Row, Col, message, Modal } from 'antd';
 import { 
     GithubOutlined, 
+    GlobalOutlined,
     SyncOutlined, 
     MailOutlined, 
     PlayCircleOutlined, 
@@ -10,7 +11,8 @@ import {
     UserOutlined,
     ThunderboltFilled
 } from '@ant-design/icons';
-import { APP_VERSION, APP_NAME, DEVELOPER_NAME, GITHUB_REPO_URL, VERSION_JSON_URL } from '../constants';
+import { APP_VERSION, APP_NAME, DEVELOPER_NAME, GITHUB_REPO_URL, OFFICIAL_WEBSITE_URL } from '../constants';
+import { api } from '../api';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -19,16 +21,42 @@ import { compareVersions, cleanVersion } from '../utils';
 const AboutPage: React.FC = () => {
     const iconUrl = './icon.ico';
     const [checking, setChecking] = useState(false);
+    const [downloading, setDownloading] = useState(false);
 
     const handleOpenLink = (url: string) => {
         window.open(url, '_blank');
     };
 
+    const handleDownloadUpdate = async (downloadPageUrl: string) => {
+        setDownloading(true);
+        try {
+            const downloadRes = await api.downloadUpdate();
+            if (downloadRes.status === 'success' && downloadRes.data) {
+                message.success(`更新包已下载到：${downloadRes.data.file_path}。请退出软件后运行安装包覆盖更新。`);
+                return;
+            }
+            if (downloadRes.action === 'open_download_page') {
+                message.info('当前下载源需要网页验证，已打开官方下载页');
+                handleOpenLink(downloadPageUrl);
+                return;
+            }
+            message.error(downloadRes.message || '更新包下载失败，请稍后重试');
+        } catch (e) {
+            message.error('更新包下载失败，请稍后重试');
+        } finally {
+            setDownloading(false);
+        }
+    };
+
     const handleCheckUpdate = async () => {
         setChecking(true);
         try {
-            const versionRes = await fetch(VERSION_JSON_URL);
-            const versionData = await versionRes.json();
+            const versionRes = await api.checkUpdate();
+            if (versionRes.status !== 'success' || !versionRes.data) {
+                message.error(versionRes.message || '检查更新失败，请稍后重试');
+                return;
+            }
+            const versionData = versionRes.data;
             
             // 当前版本
             const currentVersion = APP_VERSION;
@@ -51,15 +79,13 @@ const AboutPage: React.FC = () => {
                     ),
                     okText: '立即更新',
                     cancelText: '暂不更新',
-                    onOk: () => {
-                        window.open(versionData.download_url, '_blank');
-                    }
+                    onOk: () => handleDownloadUpdate(versionData.download_url)
                 });
             } else {
                 message.success(`当前已是最新版本 v${currentVersion}`);
             }
         } catch (e) {
-            message.error('检查更新失败，请检查网络或稍后重试');
+            message.error('检查更新失败，请稍后重试');
         } finally {
             setChecking(false);
         }
@@ -110,7 +136,7 @@ const AboutPage: React.FC = () => {
                         icon={<SyncOutlined spin={checking} />} 
                         style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
                         onClick={handleCheckUpdate}
-                        loading={checking}
+                        loading={checking || downloading}
                     >
                         检查更新
                     </Button>
@@ -119,6 +145,12 @@ const AboutPage: React.FC = () => {
                         onClick={() => handleOpenLink(GITHUB_REPO_URL)}
                     >
                         GitHub 仓库
+                    </Button>
+                    <Button
+                        icon={<GlobalOutlined />}
+                        onClick={() => handleOpenLink(OFFICIAL_WEBSITE_URL)}
+                    >
+                        打开官网
                     </Button>
                 </Space>
             </Card>

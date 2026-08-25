@@ -2,6 +2,8 @@ import json
 import threading
 import re
 import os
+import requests
+from urllib.parse import unquote, urlparse
 from datetime import datetime, timedelta
 from logger import logger
 from calendar_exporter import CalendarExporter
@@ -39,6 +41,104 @@ class Api:
             "timeout",
         ]
         return any(keyword in text for keyword in keywords)
+
+    def check_update(self):
+        """由 Python 请求版本信息，避免 WebView 跨域限制导致前端 fetch 失败。"""
+        version_url = "https://classpush.eliauk312.top/version.json"
+        try:
+            response = requests.get(
+                version_url,
+                headers={"Cache-Control": "no-cache", "Pragma": "no-cache"},
+                timeout=(8, 12),
+            )
+            response.raise_for_status()
+            data = response.json()
+            if not isinstance(data, dict) or not data.get("version") or not data.get("download_url"):
+                return {"status": "error", "message": "服务器返回的版本信息不完整"}
+            return {"status": "success", "data": data}
+        except requests.RequestException as e:
+            logger.warning(f"检查更新网络请求失败: {e}")
+            return {"status": "error", "message": "暂时无法连接更新服务器，请稍后重试"}
+        except ValueError:
+            logger.warning("检查更新失败: version.json 不是有效 JSON")
+            return {"status": "error", "message": "服务器版本信息格式有误"}
+
+    def download_update(self):
+        """下载更新包到用户的 Downloads/ClassPush 目录。
+
+        版本配置目前可能给出一个网页下载页（例如蓝奏云），这种地址不能由
+        后台直接当作安装包保存，因此交给前端打开网页；如果配置的是直链
+        .exe，则由程序直接下载。
+        """
+        update_result = self.check_update()
+        if update_result.get("status") != "success":
+            return update_result
+
+        update_data = update_result.get("data") or {}
+        download_url = str(update_data.get("download_url") or "").strip()
+        parsed_url = urlparse(download_url)
+        path_name = os.path.basename(unquote(parsed_url.path or ""))
+        if parsed_url.scheme.lower() != "https" or not parsed_url.netloc or not path_name.lower().endswith(".exe"):
+            return {
+                "status": "error",
+                "message": "当前下载源需要在网页中完成下载，请打开官方下载页继续",
+                "action": "open_download_page",
+                "data": {"download_url": download_url},
+            }
+
+        safe_name = re.sub(r"[^0-9A-Za-z._-]", "_", path_name) or "ClassPush_Setup.exe"
+        if not safe_name.lower().endswith(".exe"):
+            safe_name = "ClassPush_Setup.exe"
+        download_dir = os.path.join(os.path.expanduser("~"), "Downloads", "ClassPush")
+        file_path = os.path.join(download_dir, safe_name)
+        partial_path = f"{file_path}.part"
+        max_size = 300 * 1024 * 1024
+
+        try:
+            os.makedirs(download_dir, exist_ok=True)
+            with requests.get(download_url, stream=True, timeout=(10, 60)) as response:
+                response.raise_for_status()
+                content_length = int(response.headers.get("Content-Length") or 0)
+                if content_length > max_size:
+                    return {"status": "error", "message": "更新包超过 300 MB，已停止下载"}
+
+                downloaded = 0
+                with open(partial_path, "wb") as output:
+                    for chunk in response.iter_content(chunk_size=1024 * 1024):
+                        if not chunk:
+                            continue
+                        downloaded += len(chunk)
+                        if downloaded > max_size:
+                            raise ValueError("更新包超过 300 MB")
+                        output.write(chunk)
+
+            if downloaded < 2:
+                raise ValueError("下载内容为空")
+            with open(partial_path, "rb") as package_file:
+                if package_file.read(2) != b"MZ":
+                    raise ValueError("下载内容不是有效的 Windows 安装包")
+            os.replace(partial_path, file_path)
+            return {
+                "status": "success",
+                "message": "更新包下载完成",
+                "data": {
+                    "file_path": file_path,
+                    "file_name": safe_name,
+                    "version": str(update_data.get("version") or ""),
+                },
+            }
+        except requests.RequestException:
+            logger.warning("更新包下载网络请求失败")
+            return {"status": "error", "message": "更新包下载失败，请检查网络后重试"}
+        except (OSError, ValueError) as e:
+            logger.warning(f"更新包保存失败: {e}")
+            return {"status": "error", "message": "更新包下载失败，请稍后重试"}
+        finally:
+            if os.path.exists(partial_path):
+                try:
+                    os.remove(partial_path)
+                except OSError:
+                    pass
 
     def _sync_schedule_tasks(self):
         warning_messages = []

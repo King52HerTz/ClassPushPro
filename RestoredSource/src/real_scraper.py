@@ -8,6 +8,13 @@ from school_adapter import SCHOOL_CONFIG
 from logger import logger
 from academic_calendar import normalize_teaching_state
 
+
+# 湖南工学院教务系统的教学周接口在开学前会返回 nowWeek=1、isNowWeek=0，
+# 但不会返回第一周日期。已公布课表可确认 2026-2027-1 第 2 周从 9 月 7 日开始。
+SEMESTER_WEEK_ONE_MONDAYS = {
+    "2026-2027-1": "2026-08-31",
+}
+
 def _get_env_int(name, default_val):
     raw = (os.getenv(name) or "").strip()
     if not raw:
@@ -128,6 +135,9 @@ class CourseScraper:
             resp = self._post_with_retry(url, timeout=timeout, retries=retries)
             data = resp.json()
             state = normalize_teaching_state(data, semester_info, observed_date=observed_date)
+            semester_id = str((semester_info or {}).get("semester_id", "") or "").strip()
+            if not state.get("week_one_monday"):
+                state["week_one_monday"] = SEMESTER_WEEK_ONE_MONDAYS.get(semester_id, "")
             logger.info(
                 "教学周状态: status=%s, semester=%s, raw_week=%s, active=%s",
                 state.get("schedule_status"),

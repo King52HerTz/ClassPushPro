@@ -282,6 +282,8 @@ if __name__ == '__main__':
     # window.expose(api) # expose is not needed when js_api is used in create_window
     window.expose(
         api.get_config,
+        api.check_update,
+        api.download_update,
         api.save_config,
         api.login_test,
         api.get_preview_courses,

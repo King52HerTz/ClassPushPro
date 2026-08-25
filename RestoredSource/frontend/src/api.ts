@@ -6,7 +6,8 @@ import type {
     GradeCheckData,
     GradeQueryData,
     PreviewCoursesData,
-    SystemStatusData
+    SystemStatusData,
+    UpdateDownloadData
 } from './types';
 
 // 假设 pywebview 会注入 window.pywebview.api
@@ -15,6 +16,8 @@ declare global {
         pywebview: {
             api: {
                 get_config: () => Promise<ApiResponse<AppConfig>>;
+                check_update: () => Promise<ApiResponse<Record<string, string>>>;
+                download_update: () => Promise<ApiResponse<UpdateDownloadData>>;
                 save_config: (data: ConfigInput) => Promise<ApiResponse<null>>;
                 login_test: (username: string, password: string) => Promise<ApiResponse<Record<string, unknown>>>;
                 get_preview_courses: () => Promise<ApiResponse<PreviewCoursesData>>;
@@ -37,6 +40,18 @@ declare global {
 }
 
 export const api = {
+    checkUpdate: async (): Promise<ApiResponse<Record<string, string>>> => {
+        if (window.pywebview?.api?.check_update) {
+            return await window.pywebview.api.check_update();
+        }
+        return { status: 'error', message: '更新检查API未就绪' };
+    },
+    downloadUpdate: async (): Promise<ApiResponse<UpdateDownloadData>> => {
+        if (window.pywebview?.api?.download_update) {
+            return await window.pywebview.api.download_update();
+        }
+        return { status: 'error', message: '更新下载API未就绪' };
+    },
     checkTodayPushed: async (): Promise<ApiResponse<{ pushed: boolean; last_time?: string }>> => {
         if (window.pywebview?.api?.check_today_pushed) {
             return await window.pywebview.api.check_today_pushed();

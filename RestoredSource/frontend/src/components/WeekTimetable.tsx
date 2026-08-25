@@ -19,16 +19,17 @@ const COURSE_THEMES = [
 
 interface WeekTimetableProps {
     courses: Course[];
-    currentWeek: number;
+    currentWeek: number | 'all';
     weekMonday: dayjs.Dayjs;
+    showDates?: boolean;
     onCourseClick?: (course: Course) => void;
 }
 
-const WeekTimetable: React.FC<WeekTimetableProps> = ({ courses, currentWeek, weekMonday, onCourseClick }) => {
+const WeekTimetable: React.FC<WeekTimetableProps> = ({ courses, currentWeek, weekMonday, showDates = true, onCourseClick }) => {
     // 1. 过滤当前周课程
     const weekCourses = useMemo(() => {
         return courses.filter(course => {
-            if (!course.classWeekDetails) return true; // 如果没有详情，默认显示
+            if (currentWeek === 'all' || !course.classWeekDetails) return true; // 全部视图显示所有已抓取课程
             // 假设 classWeekDetails 是逗号分隔的周次字符串 "1,2,3..."
             const weeks = course.classWeekDetails.split(',');
             return weeks.includes(String(currentWeek));
@@ -116,7 +117,7 @@ const WeekTimetable: React.FC<WeekTimetableProps> = ({ courses, currentWeek, wee
                     return (
                         <div key={day} style={{ backgroundColor: '#fff', padding: 12, textAlign: 'center', fontWeight: 'bold' }}>
                             <div>{day}</div>
-                            <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{dateStr}</div>
+                            {showDates && <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{dateStr}</div>}
                         </div>
                     );
                 })}
