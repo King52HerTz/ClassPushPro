@@ -1,5 +1,5 @@
 #define MyAppName "ClassPush"
-#define MyAppVersion "2.1.4"
+#define MyAppVersion "2.1.5"
 #define MyAppPublisher "Eliauk"
 #define MyAppURL "https://classpush.eliauk312.top"
 #define MyAppExeName "ClassPush.exe"
@@ -38,7 +38,6 @@ Name: "chinesesimplified"; MessagesFile: "ChineseSimplified.isl"
 CreateDesktopIcon=创建桌面快捷方式(&D)
 LaunchProgram=启动 ClassPush
 AdditionalIcons=附加图标：
-
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 

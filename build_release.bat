@@ -98,7 +98,7 @@ if not defined APP_VERSION (
     exit /b 1
 )
 
-powershell -NoProfile -Command "(Get-Content '%~dp0setup.iss') -replace '^#define MyAppVersion \".*\"$', '#define MyAppVersion \"%APP_VERSION%\"' | Set-Content '%~dp0setup.iss' -Encoding Default"
+powershell -NoProfile -Command "(Get-Content '%~dp0setup.iss') -replace '^#define MyAppVersion \".*\"$', '#define MyAppVersion \"%APP_VERSION%\"' | Set-Content '%~dp0setup.iss' -Encoding utf8"
 if %errorlevel% neq 0 (
     echo Failed to update setup.iss version
     exit /b 1
