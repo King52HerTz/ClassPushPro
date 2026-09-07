@@ -27,8 +27,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onSuccess, onCancel })
                         form.setFieldsValue({
                             username: res.data.username || '',
                             password: res.data.password || '',
-                            uid: res.data.uid || '',
-                            app_token: res.data.app_token || ''
+                            uid: res.data.uid || ''
                         });
                     }
                 } catch (e) {
@@ -55,7 +54,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onSuccess, onCancel })
                 username: values.username,
                 password: values.password,
                 uid: values.uid,
-                app_token: values.app_token.trim(),
+                // 本校版本的 AppToken 由已保存的本机配置提供，不在登录表单中填写。
+                app_token: '',
                 push_time: "07:00", // 默认值
                 auto_start: false
             };
@@ -66,9 +66,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onSuccess, onCancel })
                 if (currentConfig.status === 'success' && currentConfig.data) {
                     configToSave.push_time = currentConfig.data.push_time || "07:00";
                     configToSave.auto_start = currentConfig.data.auto_start || false;
-                    if (!configToSave.app_token) {
-                        configToSave.app_token = currentConfig.data.app_token || "";
-                    }
                 }
             } catch (e) {
                 // ignore
@@ -92,7 +89,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onSuccess, onCancel })
     const howToGetUidContent = (
         <div style={{ maxWidth: 300 }}>
             <p>1. 扫描下方二维码关注“WxPusher消息推送平台”，把公众号发来的最新 UID（形如 UID_xxx）复制到下面，不能继续使用旧 UID。</p>
-            <p>2. AppToken 是你在本校 WxPusher 应用后台看到的授权码，只需首次填写，软件会加密保存在本机。</p>
+            <p>2. 本校版本无需手动填写 AppToken，软件会沿用本机已有的推送配置。</p>
             <div style={{ marginBottom: 10 }}>
                 <Button size="small" icon={<CopyOutlined />} onClick={() => {
                     navigator.clipboard.writeText("https://wxpusher.zjiecode.com/api/qrcode/uOkIOIyXg2AZRnwPRIVN78NLBXQaOxIlWs3QsRCoj4kZkyIidI7sFFrEGriCoftn.jpg");
@@ -155,18 +152,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ visible, onSuccess, onCancel })
                     rules={[{ required: true, message: '请输入 UID' }]}
                 >
                     <Input prefix={<KeyOutlined />} placeholder="请输入 UID" />
-                </Form.Item>
-
-                <Form.Item
-                    label="本校 WxPusher AppToken"
-                    name="app_token"
-                    rules={[
-                        { required: true, message: '请输入本校 WxPusher AppToken' },
-                        { pattern: /^AT_\S+$/, message: 'AppToken 格式应以 AT_ 开头' }
-                    ]}
-                    extra="请勿填写其他学校或其他应用的 AppToken"
-                >
-                    <Input.Password prefix={<KeyOutlined />} placeholder="请输入本校 AppToken" />
                 </Form.Item>
 
                 <Form.Item>

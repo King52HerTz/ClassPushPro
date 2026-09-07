@@ -2,6 +2,7 @@ import json
 import os
 import base64
 import re
+import sys
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from logger import logger
@@ -25,6 +26,28 @@ DEFAULT_CALENDAR_ALARM_MINUTES = 15
 DEFAULT_GRADE_CHECK_INTERVAL_MINUTES = 30
 DEFAULT_GRADE_CHECK_START_TIME = "07:00"
 DEFAULT_GRADE_CHECK_END_TIME = "23:00"
+PRIVATE_APP_TOKEN_FILENAME = "hnit_app_token.txt"
+
+
+def _load_private_app_token():
+    """Load the school token supplied at build time without storing it in source control."""
+    candidates = []
+    configured_path = os.environ.get("CLASSPUSH_HNIT_APP_TOKEN_FILE", "").strip()
+    if configured_path:
+        candidates.append(configured_path)
+
+    runtime_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
+    candidates.append(os.path.join(runtime_dir, PRIVATE_APP_TOKEN_FILENAME))
+
+    for path in candidates:
+        try:
+            with open(path, "r", encoding="utf-8") as token_file:
+                token = token_file.read(256).strip()
+            if re.fullmatch(r"AT_\S+", token):
+                return token
+        except (OSError, UnicodeError):
+            continue
+    return ""
 
 class ConfigManager:
     """
@@ -68,12 +91,14 @@ class ConfigManager:
         try:
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 encrypted_data = json.load(f)
+
+            app_token = self._decrypt(encrypted_data.get("app_token", "")).strip() or _load_private_app_token()
             
             # 解密敏感字段
             self.config_data = {
                 "username": self._decrypt(encrypted_data.get("username", "")).strip(),
                 "password": self._decrypt(encrypted_data.get("password", "")).strip(),
-                "app_token": self._decrypt(encrypted_data.get("app_token", "")).strip(),
+                "app_token": app_token,
                 "uid": self._decrypt(encrypted_data.get("uid", "")).strip(),
                 "push_time": encrypted_data.get("push_time", "07:00"),
                 "auto_start": encrypted_data.get("auto_start", False),
@@ -191,10 +216,10 @@ class ConfigManager:
             if grade_push_initialized is None else bool(grade_push_initialized)
         )
 
-        # 前端没有传 Token 时只保留当前配置；不在源码中内置学校的真实
-        # AppToken，避免不同学校的安装包互相串用或泄露授权凭据。
+        # 前端没有传 Token 时保留已有配置；本校发行包可通过本机私有文件
+        # 提供默认 Token，不把真实凭据提交到源码仓库。
         if not app_token:
-            app_token = self.config_data.get("app_token", "")
+            app_token = self.config_data.get("app_token", "") or _load_private_app_token()
 
         encrypted_data = {
             "username": self._encrypt(username),

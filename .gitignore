@@ -44,6 +44,8 @@ config.ini
 secrets.yaml
 .ClassPush/
 .ClassPush_HNIT/
+private/
+hnit_app_token.txt
 
 # OS specific
 .DS_Store

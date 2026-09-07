@@ -40,8 +40,7 @@ const App = () => {
         res.data &&
         res.data.username &&
         res.data.password &&
-        res.data.uid &&
-        res.data.app_token
+        res.data.uid
       ) {
         setIsLoggedIn(true);
         setShowLoginModal(false);
