@@ -3,7 +3,7 @@ import sys
 import os
 
 KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
-APP_NAME = "ClassPush"
+APP_NAME = "ClassPush_HNIT"
 
 def set_autostart(enable=True):
     """

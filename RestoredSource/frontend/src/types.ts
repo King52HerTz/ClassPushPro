@@ -138,6 +138,7 @@ export interface LoginFormValues {
   username: string;
   password: string;
   uid: string;
+  app_token: string;
 }
 
 export interface SettingsFormValues {

@@ -43,6 +43,7 @@ config.json
 config.ini
 secrets.yaml
 .ClassPush/
+.ClassPush_HNIT/
 
 # OS specific
 .DS_Store

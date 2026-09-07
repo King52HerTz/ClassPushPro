@@ -35,7 +35,14 @@ const App = () => {
     setIsCheckingLogin(true);
     try {
       const res = await api.getConfig();
-      if (res.status === 'success' && res.data && res.data.username && res.data.password) {
+      if (
+        res.status === 'success' &&
+        res.data &&
+        res.data.username &&
+        res.data.password &&
+        res.data.uid &&
+        res.data.app_token
+      ) {
         setIsLoggedIn(true);
         setShowLoginModal(false);
       } else {

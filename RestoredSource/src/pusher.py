@@ -66,6 +66,11 @@ class Pusher:
             pass
         return (connect_timeout, read_timeout)
 
+    @staticmethod
+    def _is_removed_subscription(status):
+        text = str(status or "")
+        return "订阅关系" in text and any(word in text for word in ("移除", "删除", "不存在", "失效"))
+
     def send(self, uids, content, summary="课程提醒", content_type=3):
         """
         发送消息
@@ -128,8 +133,18 @@ class Pusher:
 
                 try:
                     data = resp.json()
-                    # 记录详细响应以便调试
-                    logger.info(f"WxPusher响应: {json.dumps(data, ensure_ascii=False)}")
+                    # 日志只记录脱敏后的目标信息，避免把 UID 写入可复制的日志。
+                    log_data = dict(data) if isinstance(data, dict) else data
+                    if isinstance(log_data, dict) and isinstance(log_data.get("data"), list):
+                        log_data["data"] = [
+                            {
+                                **item,
+                                "uid": "<redacted>" if item.get("uid") else item.get("uid"),
+                            }
+                            if isinstance(item, dict) else item
+                            for item in log_data["data"]
+                        ]
+                    logger.info(f"WxPusher响应: {json.dumps(log_data, ensure_ascii=False)}")
                 except Exception:
                     last_error_msg = "返回解析失败"
                 else:
@@ -138,7 +153,11 @@ class Pusher:
                         invalid_list = []
                         for item in data.get("data", []):
                             if item.get("code") != 1000:
-                                invalid_list.append(f"{item.get('uid')}: {item.get('status')}")
+                                status = item.get("status")
+                                if self._is_removed_subscription(status):
+                                    invalid_list.append("订阅关系已失效，请重新扫码后重新登录并填写最新 UID")
+                                else:
+                                    invalid_list.append(f"UID 推送失败: {status or '未知状态'}")
                         
                         if invalid_list:
                             err_detail = "; ".join(invalid_list)

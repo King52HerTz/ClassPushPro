@@ -6,9 +6,9 @@ import ctypes
 import win32com.client
 from logger import logger
 
-COURSE_TASK_NAME = "ClassPush_AutoRun"
-GRADE_TASK_NAME = "ClassPush_GradeCheck"
-TASK_FOLDER_NAME = "ClassPush"
+COURSE_TASK_NAME = "ClassPush_HNIT_AutoRun"
+GRADE_TASK_NAME = "ClassPush_HNIT_GradeCheck"
+TASK_FOLDER_NAME = "ClassPush_HNIT"
 
 # Task Scheduler Constants
 TASK_TRIGGER_DAILY = 2

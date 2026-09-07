@@ -239,7 +239,7 @@ if __name__ == '__main__':
 
     # 4. 正常启动 GUI
     import webview
-    logger.info("=== Starting ClassPush  GUI (Version: Fix-Reload-Config) ===")
+    logger.info("=== Starting ClassPush GUI (Version: 2.1.4) ===")
     api = Api()
     entry = get_entry_point()
     icon_path = get_icon_path()

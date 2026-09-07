@@ -33,12 +33,12 @@ jobs:
         cache: 'pip'
 
     - name: Prepare ClassPush cache dir
-      run: mkdir -p ~/.ClassPush
+      run: mkdir -p ~/.ClassPush_HNIT
 
     - name: Restore ClassPush state
       uses: actions/cache@v4
       with:
-        path: ~/.ClassPush
+        path: ~/.ClassPush_HNIT
         key: classpush-state-${{ runner.os }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
         restore-keys: |
           classpush-state-${{ runner.os }}-${{ github.ref_name }}-

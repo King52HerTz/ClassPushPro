@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import requests
 
 from logger import logger
+from app_paths import get_app_data_dir
 
 
 OPEN_METEO_FORECAST_API_URL = "https://api.open-meteo.com/v1/forecast"
@@ -58,9 +59,7 @@ class WeatherContentService:
 
     def __init__(self, config):
         self.config = config
-        app_data = os.path.join(os.path.expanduser("~"), ".ClassPush")
-        os.makedirs(app_data, exist_ok=True)
-        self.cache_path = os.path.join(app_data, "weather_cache.json")
+        self.cache_path = os.path.join(get_app_data_dir(), "weather_cache.json")
 
     def get_weather_content(self, target_date=None):
         if not self.config.get("weather_enabled", False):

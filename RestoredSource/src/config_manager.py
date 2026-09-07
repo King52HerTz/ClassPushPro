@@ -5,6 +5,7 @@ import re
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from logger import logger
+from app_paths import get_app_data_dir
 
 CONFIG_FILE = "config.json"
 # 使用一个本地固定的密钥用于加密配置文件
@@ -33,9 +34,7 @@ class ConfigManager:
         if config_path:
             self.config_path = config_path
         else:
-            # 默认存储在用户目录下的 .ClassPush 文件夹
-            app_data = os.path.join(os.path.expanduser("~"), ".ClassPush")
-            os.makedirs(app_data, exist_ok=True)
+            app_data = get_app_data_dir()
             self.config_path = os.path.join(app_data, CONFIG_FILE)
             
         logger.info(f"Config file path: {self.config_path}")
@@ -192,16 +191,10 @@ class ConfigManager:
             if grade_push_initialized is None else bool(grade_push_initialized)
         )
 
-        # 强制兜底：如果前端传了空 Token，且配置文件中没有有效 Token，则自动补上默认的那个真实 Token
-        # 这解决了前端界面隐藏 Token 后，保存时把空字符串传过来覆盖掉正确 Token 的问题
+        # 前端没有传 Token 时只保留当前配置；不在源码中内置学校的真实
+        # AppToken，避免不同学校的安装包互相串用或泄露授权凭据。
         if not app_token:
-            # 先尝试用旧配置里的 Token
-            current_token = self.config_data.get("app_token", "")
-            if current_token:
-                app_token = current_token
-            else:
-                 # 如果旧配置也没有，就用默认的硬编码 Token
-                app_token = "AT_Xmbnkx7s8q8SvUiNMtk24FlDnXCKiT9e"
+            app_token = self.config_data.get("app_token", "")
 
         encrypted_data = {
             "username": self._encrypt(username),

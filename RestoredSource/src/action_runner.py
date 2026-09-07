@@ -1,5 +1,6 @@
 import os
 import sys
+import os
 import json
 import base64
 import socket
@@ -14,6 +15,7 @@ sys.path.append(current_dir)
 
 from run_job import run_grade_check_task, run_push_task
 from logger import logger
+from app_paths import get_app_data_dir
 
 def check_env_vars():
     """检查必要的环境变量"""
@@ -77,8 +79,7 @@ def _maybe_sleep_jitter():
     time.sleep(seconds)
 
 def _get_target_config_path():
-    target_dir = os.path.join(os.path.expanduser("~"), ".ClassPush")
-    os.makedirs(target_dir, exist_ok=True)
+    target_dir = get_app_data_dir()
     return os.path.join(target_dir, "config.json")
 
 def _print_config_cache_status(config_path, source_label):

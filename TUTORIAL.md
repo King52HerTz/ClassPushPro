@@ -124,14 +124,14 @@ GitHub 非常安全，它提供了一个“保险箱”功能 (Secrets)，你的
     *   这一步很重要，因为只有成功抓取过，`config.json` 里才会带上缓存数据。
 
 2.  **找到本地配置文件 `config.json`**：
-    *   文件通常在：`C:\Users\你的用户名\.ClassPush\config.json`
+     *   文件通常在：`C:\Users\你的用户名\.ClassPush_HNIT\config.json`
 
 3.  **把 `config.json` 转成 Base64**：
     *   打开 Windows PowerShell
     *   执行下面这条命令：
 
     ```powershell
-    [Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:USERPROFILE\.ClassPush\config.json"))
+     [Convert]::ToBase64String([IO.File]::ReadAllBytes("$env:USERPROFILE\.ClassPush_HNIT\config.json"))
     ```
 
     *   命令执行后会输出一大串很长的字符串，把它**完整复制**下来。

@@ -561,7 +561,10 @@ class Api:
             if success:
                 return {"status": "success", "message": "推送成功，请查看手机消息"}
             else:
-                return {"status": "error", "message": f"推送失败: {msg}"}
+                message = str(msg or "未知错误")
+                if not message.startswith("推送失败"):
+                    message = f"推送失败: {message}"
+                return {"status": "error", "message": message}
         except Exception as e:
             return {"status": "error", "message": f"推送异常: {e}"}
 

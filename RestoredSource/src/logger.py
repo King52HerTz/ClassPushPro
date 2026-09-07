@@ -2,11 +2,12 @@ import logging
 import os
 import sys
 from logging.handlers import RotatingFileHandler
+from app_paths import get_app_data_dir
 
 # 确保日志目录存在
 if getattr(sys, 'frozen', False):
-    # 打包后：日志存储在用户主目录下的 .ClassPush/logs
-    LOG_DIR = os.path.join(os.path.expanduser("~"), ".ClassPush", "logs")
+    # 打包后：日志与本学校的配置隔离保存
+    LOG_DIR = os.path.join(get_app_data_dir(), "logs")
 else:
     # 开发环境：存储在项目目录下的 logs
     LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
