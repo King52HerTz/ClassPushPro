@@ -75,7 +75,7 @@
 **Q: 360 提示有病毒？**
 A: 这是**误报**。因为软件是用 Python 打包的 (`PyInstaller`)，且没有购买昂贵的数字签名证书，容易被国产杀毒软件误判。
 *   请添加信任，或在运行时暂时关闭杀毒软件。
-*   如果不放心，可以去 [GitHub 查看源代码](https://github.com/King52HerTz/ClassPushPro) 自己编译。
+*   安装包请从 [ClassPush 官网](https://classpush.eliauk312.top/) 下载；如果仍无法打开，再联系开发者排查。
 
 ---
 

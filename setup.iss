@@ -1,7 +1,7 @@
 #define MyAppName "ClassPush"
 #define MyAppVersion "2.1.4"
 #define MyAppPublisher "Eliauk"
-#define MyAppURL "https://github.com/King52HerTz/ClassPush"
+#define MyAppURL "https://classpush.eliauk312.top"
 #define MyAppExeName "ClassPush.exe"
 
 [Setup]
@@ -14,11 +14,17 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={autopf}\{#MyAppName}
+DefaultDirName={localappdata}\Programs\{#MyAppName}
+DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
-; Allow the user to choose the install directory.
 DisableDirPage=no
 PrivilegesRequired=lowest
+ArchitecturesInstallIn64BitMode=x64
+CloseApplications=force
+RestartApplications=no
+UsePreviousAppDir=yes
+UsePreviousGroup=yes
+UsePreviousTasks=yes
 OutputDir=.
 OutputBaseFilename=ClassPush_Setup
 Compression=lzma
@@ -29,9 +35,9 @@ WizardStyle=modern
 Name: "chinesesimplified"; MessagesFile: "ChineseSimplified.isl"
 
 [CustomMessages]
-CreateDesktopIcon=Create desktop shortcut (&D)
-LaunchProgram=Launch ClassPush
-AdditionalIcons=Additional icons:
+CreateDesktopIcon=创建桌面快捷方式(&D)
+LaunchProgram=启动 ClassPush
+AdditionalIcons=附加图标：
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked

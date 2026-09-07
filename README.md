@@ -31,7 +31,7 @@ ClassPush 是一个给湖南工学院同学用的课表与成绩推送工具。�
 
 适合想直接点点鼠标、顺便在电脑上看课表和成绩的同学。
 
-1. 到 [Releases](https://github.com/King52HerTz/ClassPushPro/releases) 下载最新版 `ClassPush_Setup.exe`。
+1. 到 [ClassPush 官网](https://classpush.eliauk312.top/) 下载最新版 `ClassPush_Setup.exe`。
 2. 安装并登录教务系统。
 3. 填写 WxPusher UID，根据需要开启课表推送、成绩推送和开机自启。
 
