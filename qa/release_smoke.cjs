@@ -37,7 +37,9 @@ async function main() {
       }
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `tutorial overflow at ${width}`);
       for (const link of await page.locator('.guide-jumps a').all()) {
-        assert.equal(await page.locator(await link.getAttribute('href')).count(), 1);
+        const target = new URL(await link.getAttribute('href'), page.url()).hash;
+        assert.ok(target);
+        assert.equal(await page.locator(target).count(), 1);
       }
       await page.screenshot({ path: path.resolve(__dirname, `../private/qa-output/calendar-guide-${width}.png`), fullPage: true });
     }
