@@ -15,7 +15,7 @@ async function loadDownload() {
     const url = new URL(release.download_url, location.href);
     if (url.protocol !== 'https:' || url.hostname !== 'classpush.eliauk312.top' || !url.pathname.toLowerCase().endsWith('.exe')) throw new Error('正式下载地址待确认，请联系开发者。');
     button.href = url.href; button.removeAttribute('aria-disabled'); button.textContent = `下载桌面版 v${release.version}`;
-    note.textContent = String(release.version).startsWith('3.') ? 'Windows 10 / 11 64位 · 中文安装 · 可选安装位置。' : `新版桌面 v3.0 正在验收，当前下载仍为 v${release.version} 历史正式版，功能以对应版本为准。新版包确认后再替换。`;
+    note.textContent = String(release.version).startsWith('3.') ? 'Windows 10 / 11 64位 · 中文向导 · 可选盘符、安装目录和桌面快捷方式。升级前请退出旧软件。' : `当前下载为 v${release.version} 历史正式版，功能以对应版本为准。`;
   }
 }
 async function loadChanges() {

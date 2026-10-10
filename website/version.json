@@ -1,8 +1,18 @@
 {
   "version": "3.0.0",
-  "release_date": "2026-10-10",
-  "release_status": "云端版验收候选",
-  "available": false,
-  "download_url": "https://classpush.eliauk312.top/ClassPush_Setup.exe",
-  "changelog": "新增本校云端托管：07:00 当天、20:00 次日独立开关\n新增成绩变化云端提醒，首次只建立基线\n日历导出独立成页，本地登录无需 UID\n移除电脑定时推送与 GitHub Actions 推送\n统一官网与软件版本信息，下载走自有服务器\n图文教程待补充真实操作图片"
+  "release_date": "2026-10-11",
+  "release_status": "正式发布",
+  "available": true,
+  "download_url": "https://classpush.eliauk312.top/downloads/ClassPush_Setup_3.0.0.exe",
+  "lanzou_url": "https://classpush.eliauk312.top/downloads/ClassPush_Setup_3.0.0.exe",
+  "lanzou_password": "",
+  "file_size": "20.2 MB",
+  "size_bytes": 21205017,
+  "sha256": "8dd54dffec837343af102cdc07c9b257f3c5c1ede3a21a65cd08cb2d68111b3b",
+  "changelog": "新增本校云端托管：07:00 当天、20:00 次日课表独立开关，电脑无需常开\n新增成绩变化云端提醒，首次只建立基线；通知在 WxPusher 独立 App 接收\n日历导出独立成页，本地登录无需 UID，提供 Android 与 iPhone 实机图文教程\n桌面学习空间重新排版，保留旧版小主文案与彩色消息卡片\n移除电脑定时推送与 GitHub Actions 推送，云端需主动绑定账号\n中文安装向导可选择盘符、安装目录和桌面快捷方式；软件内更新与官网下载均走自有服务器",
+  "highlights": [
+    {"icon": "☁", "title": "电脑关机也能提醒", "description": "07:00 当天、20:00 次日与成绩变化提醒按需开启"},
+    {"icon": "▦", "title": "课表装进手机日历", "description": "独立导出 ICS，配有 Android 与 iPhone 图文教程"},
+    {"icon": "↓", "title": "中文安装与服务器直链", "description": "选择安装目录与快捷方式，旧版检查更新可下载新版"}
+  ]
 }
