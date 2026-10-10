@@ -85,28 +85,16 @@ class GradeServiceTests(unittest.TestCase):
     def tearDown(self):
         self.temp_dir.cleanup()
 
-    def test_failed_push_does_not_advance_grade_baseline(self):
-        self.service._create_scraper = lambda: FakeScraper(grade(85, "new"))
-        self.service._push_grade_changes = lambda new, updated: (False, "network error")
 
-        result = self.service.check_new_grades()
 
+    def test_compare_does_not_mutate_baseline(self):
+        old = self.service.load_grade_cache()
+        new = self.service._empty_cache()
+        self.service._upsert_semester_snapshot(new, FakeScraper(grade(85, "new")).get_term_grades("2025-2026-2"))
+        result = self.service.compare_grade_snapshots(old, new)
         self.assertEqual(len(result["updated_items"]), 1)
-        self.assertFalse(result["push_result"]["success"])
         cached = self.service._flatten_grade_map(self.service.load_grade_cache())
         self.assertEqual(cached["2025-2026-2:data-structure"]["score"], "80")
-
-    def test_score_update_is_pushed_and_saved_after_success(self):
-        self.service._create_scraper = lambda: FakeScraper(grade(85, "new"))
-        calls = []
-        self.service._push_grade_changes = lambda new, updated: (calls.append((new, updated)) is None, "ok")
-
-        result = self.service.check_new_grades()
-
-        self.assertTrue(result["push_result"]["success"])
-        self.assertEqual(len(calls[0][1]), 1)
-        cached = self.service._flatten_grade_map(self.service.load_grade_cache())
-        self.assertEqual(cached["2025-2026-2:data-structure"]["score"], "85")
 
     def test_html_message_escapes_course_name_and_shows_old_score(self):
         content, summary = self.service.build_grade_push_message(

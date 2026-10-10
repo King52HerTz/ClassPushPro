@@ -1,4 +1,3 @@
-import copy
 import html
 import json
 import os
@@ -8,7 +7,6 @@ from config_manager import ConfigManager
 from grade_scraper import GradeScraper
 from logger import logger
 from login_manager import LoginManager
-from pusher import Pusher
 
 
 class GradeService:
@@ -28,6 +26,8 @@ class GradeService:
         try:
             with open(self.cache_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
+            if data.get("owner") != self.config.get("username"):
+                return self._empty_cache()
             return self._normalize_cache_shape(data)
         except Exception:
             logger.exception("成绩缓存加载失败")
@@ -36,6 +36,7 @@ class GradeService:
     def save_grade_cache(self, cache_data):
         try:
             normalized = self._normalize_cache_shape(cache_data)
+            normalized["owner"] = self.config.get("username")
             with open(self.cache_path, "w", encoding="utf-8") as f:
                 json.dump(normalized, f, ensure_ascii=False, indent=2)
             return True
@@ -193,84 +194,6 @@ class GradeService:
             "updated_items": updated_items,
         }
 
-    def check_new_grades(self, push_enabled=None):
-        scraper = self._create_scraper()
-        current_term = scraper.get_current_term()
-        semester_list = scraper.get_semester_list()
-        selected_semester = self._resolve_selected_semester(None, current_term, semester_list)
-        latest_term_data = scraper.get_term_grades(
-            selected_semester["semester_id"],
-            selected_semester["semester_name"],
-        )
-
-        old_cache = self.load_grade_cache()
-        updated_cache = copy.deepcopy(old_cache)
-        updated_cache["current_term"] = current_term
-        updated_cache["semester_list"] = semester_list
-        updated_cache["last_check_time"] = self._now_str()
-        self._upsert_semester_snapshot(updated_cache, latest_term_data)
-
-        compare_result = self.compare_grade_snapshots(old_cache, updated_cache)
-        new_items = [
-            item for item in compare_result["new_items"]
-            if item.get("semester_id") == latest_term_data.get("semester_id")
-        ]
-        updated_items = [
-            item for item in compare_result["updated_items"]
-            if item.get("after", {}).get("semester_id") == latest_term_data.get("semester_id")
-        ]
-
-        push_result = {
-            "attempted": False,
-            "success": False,
-            "message": "未触发推送",
-        }
-
-        should_push = self.config.get("grade_push_enabled", False) if push_enabled is None else bool(push_enabled)
-        should_initialize_baseline = should_push and (
-            not bool(self.config.get("grade_push_initialized", False)) or not self._has_grade_baseline(old_cache)
-        )
-        if should_initialize_baseline:
-            self.save_grade_cache(updated_cache)
-            self.config.update_grade_push_initialized(True)
-            push_result = {
-                "attempted": True,
-                "success": True,
-                "message": "首次启用已建立成绩基线，历史成绩不会推送",
-            }
-            return {
-                "current_term": current_term,
-                "checked_semester": selected_semester,
-                "new_items": [],
-                "updated_items": updated_items,
-                "push_result": push_result,
-            }
-
-        has_changes = bool(new_items or updated_items)
-        if should_push and has_changes:
-            push_success, push_message = self._push_grade_changes(new_items, updated_items)
-            push_result = {
-                "attempted": True,
-                "success": push_success,
-                "message": push_message,
-            }
-            if push_success:
-                updated_cache["last_push_time"] = self._now_str()
-                self.save_grade_cache(updated_cache)
-        elif should_push:
-            push_result["attempted"] = True
-            push_result["message"] = "当前学期暂无新增成绩"
-            self.save_grade_cache(updated_cache)
-        else:
-            self.save_grade_cache(updated_cache)
-
-        return {
-            "current_term": current_term,
-            "checked_semester": selected_semester,
-            "new_items": new_items,
-            "updated_items": updated_items,
-            "push_result": push_result,
-        }
 
     def build_grade_push_message(self, new_items, updated_items=None, is_manual_full=False):
         items = self._sort_grade_items(new_items)
@@ -323,20 +246,6 @@ class GradeService:
 """.strip()
         return content, summary
 
-    def send_current_term_grades(self):
-        result = self.get_grades()
-        grades = [item for item in result.get("grades", []) if isinstance(item, dict)]
-        if not grades:
-            return False, "当前学期还没有成绩可以推送"
-
-        app_token = self.config.get("app_token")
-        uid = self.config.get("uid")
-        if not app_token or not uid:
-            return False, "WxPusher 配置不完整，请先在设置页保存 UID"
-
-        content, summary = self.build_grade_push_message(grades, is_manual_full=True)
-        pusher = Pusher(app_token)
-        return pusher.send([uid], content, summary=summary, content_type=2)
 
     def _build_grade_card(self, item, badge):
         item = item if isinstance(item, dict) else {}
@@ -370,13 +279,6 @@ class GradeService:
         except (TypeError, ValueError):
             return False
 
-    def save_grade_push_settings(self, enable=None, interval_minutes=None, start_time=None, end_time=None):
-        return self.config.update_grade_push_settings(
-            enabled=enable,
-            interval_minutes=interval_minutes,
-            start_time=start_time,
-            end_time=end_time,
-        )
 
     def _create_scraper(self):
         username = self.config.get("username")
@@ -599,16 +501,3 @@ class GradeService:
         cache = self._normalize_cache_shape(cache_data)
         return bool(cache.get("semesters")) and bool(cache.get("last_check_time"))
 
-    def _push_grade_changes(self, new_items, updated_items=None):
-        app_token = self.config.get("app_token")
-        uid = self.config.get("uid")
-        if not app_token or not uid:
-            return False, "WxPusher 配置不完整"
-
-        content, summary = self.build_grade_push_message(new_items, updated_items)
-        if not content:
-            return False, "推送内容为空"
-
-        pusher = Pusher(app_token)
-        success, message = pusher.send([uid], content, summary=summary, content_type=2)
-        return success, message
