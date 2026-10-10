@@ -4,6 +4,7 @@ import threading
 import time
 import unittest
 from datetime import datetime, timezone
+from contextlib import nullcontext
 from email.utils import format_datetime
 from unittest.mock import Mock, patch
 
@@ -55,6 +56,16 @@ class OutboundTest(unittest.TestCase):
         other.perform(request)
         self.gate.perform(request)
         self.assertEqual(starts, [10000, 10003, 10006])
+
+    def test_spacing_wait_uses_remaining_queue_budget(self):
+        with self.store.db() as db:
+            db.execute('UPDATE school_outbound SET next_request=? WHERE id=1', (self.clock() + 2,))
+        request = Mock()
+        with patch.object(self.store, 'lock', return_value=nullcontext()), \
+                patch('cloud.outbound.time.monotonic', side_effect=[100, 114]):
+            with self.assertRaises(ServiceError):
+                self.gate.perform(request)
+        request.assert_not_called()
 
     def test_cross_process_queue_timeout(self):
         context = multiprocessing.get_context("spawn")

@@ -7,8 +7,8 @@
   "lanzou_url": "https://classpush.eliauk312.top/downloads/ClassPush_Setup_3.0.2.exe",
   "lanzou_password": "",
   "file_size": "20.2 MB",
-  "size_bytes": 21202639,
-  "sha256": "36f985f913c0b95584533b94fde16c5829449bf8c61967f9ad5f2e595e09b22c",
+  "size_bytes": 21205450,
+  "sha256": "26dc17c19c08b94ce324e1f277c1ba063e041385e6104292bdd71feaa7b5f515",
   "changelog": "新增云端课表提醒：电脑关机也能接收，07:00当天课表、20:00次日课表可独立开启或暂停\n新增云端成绩变化通知：有新增或变化才提醒，首次绑定不会推送历史成绩\n新增独立日历导出：支持本周、未来7天和全学期ICS，配有Android与iPhone图文导入教程\n升级桌面学习空间：保留本校课表和成绩查询，本地登录不需要填写推送UID；云端与本地可独立使用\n提醒改由自有服务器运行，无需电脑定时任务或GitHub Actions；首次使用需在云端主动绑定，在WxPusher独立App接收通知",
   "highlights": [
     {
