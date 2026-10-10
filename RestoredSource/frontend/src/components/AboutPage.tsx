@@ -126,15 +126,14 @@ const AboutPage: React.FC = () => {
                 </div>
 
                 <Paragraph style={{ maxWidth: 600, margin: '0 auto 24px', color: '#666' }}>
-                    一款专为大学生设计的桌面端课表推送工具。<br />
-                    自动抓取教务系统课表，每天定时推送到WxPusher app，让查课变得简单高效。
+                    湖南工学院的课表、成绩与日历工作空间。<br />
+                    本地查询，日历随身；云端通知由 WxPusher 独立 App 接收，电脑不必常开。
                 </Paragraph>
 
                 <Space size="large">
                     <Button 
                         type="primary" 
                         icon={<SyncOutlined spin={checking} />} 
-                        style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
                         onClick={handleCheckUpdate}
                         loading={checking || downloading}
                     >

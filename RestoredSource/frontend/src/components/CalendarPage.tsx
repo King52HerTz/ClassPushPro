@@ -16,7 +16,7 @@ export default function CalendarPage() {
       const [config, preview] = await Promise.all([api.getConfig(), api.getPreviewCourses()]);
       if (config.data) form.setFieldsValue({ alarm: config.data.calendar_alarm_minutes ?? 15, slots: config.data.time_slots });
       if (preview.status === 'success') setData(preview.data);
-      else message.warning(preview.message || '请先在设置中登录本校教务账号');
+      else message.warning(preview.message || '请先通过右上角登录本校教务账号');
     } catch { message.error('课表加载失败，请重试'); }
     finally { setLoading(false); }
   };

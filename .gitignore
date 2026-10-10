@@ -52,6 +52,7 @@ hnit_app_token.txt
 *.env
 !cloud/.env.example
 website/downloads/
+website/demo/
 
 # OS specific
 .DS_Store
