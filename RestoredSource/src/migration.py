@@ -8,8 +8,9 @@ def retire_local_push():
     if sys.platform != "win32":
         return ""
     try:
-        import win32com.client
-        service = win32com.client.Dispatch("Schedule.Service")
+        # Dynamic dispatch does not depend on a machine-specific generated COM cache.
+        from win32com.client.dynamic import Dispatch
+        service = Dispatch("Schedule.Service")
         service.Connect()
         for folder_name in ("\\ClassPush_HNIT", "\\"):
             try:

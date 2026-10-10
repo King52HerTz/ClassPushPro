@@ -207,7 +207,9 @@ if __name__ == '__main__':
     migration_warning = retire_local_push()
     if migration_warning:
         import ctypes
-        ctypes.windll.user32.MessageBoxW(0, migration_warning, "旧版任务迁移提示", 0x30)
+        # A denied legacy-task cleanup must not block the application before its UI loads.
+        threading.Thread(target=ctypes.windll.user32.MessageBoxW,
+                         args=(0, migration_warning, "旧版任务迁移提示", 0x30), daemon=True).start()
     # 正常启动 GUI
     import webview
     logger.info("=== Starting ClassPush GUI (Version: 3.0.0) ===")

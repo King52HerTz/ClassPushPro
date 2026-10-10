@@ -3,6 +3,9 @@
 #define MyAppPublisher "Eliauk"
 #define MyAppURL "https://classpush.eliauk312.top"
 #define MyAppExeName "ClassPush.exe"
+#ifndef MyAppSourceDir
+  #define MyAppSourceDir "dist\ClassPush"
+#endif
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -42,8 +45,8 @@ AdditionalIcons=附加图标：
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "dist\ClassPush\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dist\ClassPush\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#MyAppSourceDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#MyAppSourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [InstallDelete]
 ; Remove the old desktop-only token; push credentials now live on the server.
@@ -55,15 +58,3 @@ Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: de
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-
-[Code]
-// Close a running ClassPush process before installation continues.
-function InitializeSetup(): Boolean;
-var
-  ErrorCode: Integer;
-begin
-  if ShellExec('open', 'taskkill.exe', '/F /IM ClassPush.exe', '', SW_HIDE, ewWaitUntilTerminated, ErrorCode) then
-  begin
-  end;
-  Result := True;
-end;
