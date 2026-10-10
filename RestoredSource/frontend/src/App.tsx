@@ -6,7 +6,7 @@ import LoginModal from './components/LoginModal';
 import DeveloperEgg from './components/DeveloperEgg';
 import { useResponsiveLayout } from './hooks/useResponsiveLayout';
 import { api } from './api';
-import { APP_VERSION, OFFICIAL_WEBSITE_URL } from './constants';
+import { OFFICIAL_WEBSITE_URL } from './constants';
 
 const CoursePreviewPage = lazy(() => import('./components/CoursePreviewPage'));
 const GradesPage = lazy(() => import('./components/GradesPage'));
@@ -92,7 +92,6 @@ export default function App() {
         ]} />
         <div className="sidebar-bottom">
           <Tooltip title="开发者的秘密基地"><Button className="developer-egg-trigger" type="text" aria-label="打开开发者彩蛋" icon={<GiftOutlined />} onClick={() => setEggOpen(true)}>{!collapsed && '发现一枚彩蛋'}</Button></Tooltip>
-          {!collapsed && <><span className="sidebar-version">v{APP_VERSION} · 验收版</span><p>把校园安排，带在身边。</p></>}
           <Tooltip title={collapsed ? '展开导航' : '收起导航'}>
             <Button type="text" aria-label={collapsed ? '展开导航' : '收起导航'} icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed(!collapsed)} />
           </Tooltip>

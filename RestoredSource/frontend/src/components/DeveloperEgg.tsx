@@ -10,27 +10,53 @@ export default function DeveloperEgg({ open, onClose }: { open: boolean; onClose
     const element = canvas.current;
     const context = element.getContext('2d');
     if (!context) return;
-    const width = 520, height = 220, ratio = Math.min(window.devicePixelRatio || 1, 2);
+    // Ant Design may begin opening while the force-rendered dialog is still hidden.
+    const width = element.clientWidth || Math.max(1, Math.min(480, window.innerWidth - 80));
+    const height = 180, ratio = Math.min(window.devicePixelRatio || 1, 2);
     element.width = width * ratio; element.height = height * ratio;
     context.scale(ratio, ratio);
-    const colors = ['#1677ff', '#9a7ce8', '#f2b84b', '#ed85a6', '#48b9a1'];
-    const sparks = [0, 1, 2].flatMap(burst => Array.from({ length: 52 }, (_, i) => ({
-      x: [115, 390, 260][burst], y: [90, 80, 55][burst], delay: burst * 450,
-      angle: i / 52 * Math.PI * 2, speed: 30 + Math.random() * 85, color: colors[i % colors.length],
-    })));
+    const colors = ['#8dcaff', '#ffd58a', '#d4b2ff'];
+    const bursts = [0, 1, 2].map(index => ({
+      x: width * [.24, .76, .5][index], y: [65, 60, 40][index], delay: index * 380,
+      color: colors[index],
+      sparks: Array.from({ length: 48 }, (_, i) => ({
+        angle: i / 48 * Math.PI * 2, speed: 45 + Math.random() * 80,
+        size: .8 + Math.random() * .9,
+      })),
+    }));
     const start = performance.now();
     let frame = 0;
     const draw = (now: number) => {
       context.clearRect(0, 0, width, height);
-      for (const spark of sparks) {
-        const age = (now - start - spark.delay) / 1000;
-        if (age < 0 || age > 1.6) continue;
-        context.globalAlpha = Math.max(0, 1 - age / 1.6);
-        context.fillStyle = spark.color;
-        context.beginPath();
-        context.arc(spark.x + Math.cos(spark.angle) * spark.speed * age,
-          spark.y + Math.sin(spark.angle) * spark.speed * age + 35 * age * age, 2, 0, Math.PI * 2);
-        context.fill();
+      context.globalCompositeOperation = 'lighter';
+      for (const burst of bursts) {
+        const elapsed = (now - start - burst.delay) / 1000;
+        if (elapsed < 0 || elapsed > 1.8) continue;
+        context.fillStyle = context.strokeStyle = context.shadowColor = burst.color;
+        context.shadowBlur = 6;
+        context.lineWidth = 1.2;
+        if (elapsed < .4) {
+          const progress = 1 - Math.pow(1 - elapsed / .4, 2);
+          const y = height - 16 - (height - 16 - burst.y) * progress;
+          const trail = context.createLinearGradient(0, y, 0, y + 24);
+          trail.addColorStop(0, burst.color); trail.addColorStop(1, 'transparent');
+          context.globalAlpha = 1;
+          context.strokeStyle = trail;
+          context.beginPath(); context.moveTo(burst.x, y); context.lineTo(burst.x, y + 24); context.stroke();
+          continue;
+        }
+        const age = elapsed - .4;
+        const travel = (1 - Math.exp(-2.4 * age)) / 2.4;
+        const tailTravel = (1 - Math.exp(-2.4 * Math.max(0, age - .08))) / 2.4;
+        for (const spark of burst.sparks) {
+          const vx = Math.cos(spark.angle) * spark.speed, vy = Math.sin(spark.angle) * spark.speed;
+          const x = burst.x + vx * travel, y = burst.y + vy * travel + 22 * age * age;
+          context.globalAlpha = Math.pow(1 - age / 1.4, 1.5);
+          context.beginPath();
+          context.moveTo(burst.x + vx * tailTravel, burst.y + vy * tailTravel + 22 * Math.max(0, age - .08) ** 2);
+          context.lineTo(x, y); context.stroke();
+          context.beginPath(); context.arc(x, y, spark.size, 0, Math.PI * 2); context.fill();
+        }
       }
       if (now - start < 2700) frame = requestAnimationFrame(draw);
       else context.clearRect(0, 0, width, height);
@@ -39,9 +65,12 @@ export default function DeveloperEgg({ open, onClose }: { open: boolean; onClose
     return () => { cancelAnimationFrame(frame); context.clearRect(0, 0, width, height); };
   }, [open]);
 
-  return <Modal open={open} onCancel={onClose} forceRender title="开发者的秘密基地" footer={null} width={560}>
+  return <Modal open={open} onCancel={onClose} forceRender centered title="开发者的秘密基地" footer={null} width={560} styles={{ body: { maxHeight: 'calc(100dvh - 160px)', overflowY: 'auto' } }}>
     <div className="developer-egg">
-      <canvas ref={canvas} className="egg-fireworks" aria-hidden="true" />
+      <div className="egg-sky" aria-hidden="true">
+        <canvas ref={canvas} className="egg-fireworks" />
+        <span className="egg-sky-caption">每一颗 Star，都值得一场小烟花</span>
+      </div>
       <span className="egg-kicker">HIDDEN SIDE QUEST · 隐藏支线已解锁</span>
       <h2>恭喜！你抓到了<br />一只野生开发者。</h2>
       <p>白天和课表斗智斗勇，晚上和 Bug 极限拉扯。<br />这个小项目的精神食粮，是你顺手点亮的一颗 Star。</p>

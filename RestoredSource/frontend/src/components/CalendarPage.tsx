@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Button, Card, Descriptions, Form, Input, InputNumber, message, Select, Space, Typography } from 'antd';
+import { Alert, Button, Card, Collapse, Descriptions, Form, Input, InputNumber, message, Select, Space, Typography } from 'antd';
 import { DownloadOutlined, FolderOpenOutlined, ReadOutlined } from '@ant-design/icons';
 import { api } from '../api';
 import type { PreviewCoursesData } from '../types';
@@ -48,13 +48,15 @@ export default function CalendarPage() {
           { value: 'current_week', label: '本周（建议首次测试）' }, { value: 'next_7_days', label: '未来 7 天' }, { value: 'term', label: '全学期' },
         ]} /></Form.Item>
         <Form.Item name="alarm" label="提前提醒（分钟，0 表示不提醒）"><InputNumber min={0} max={1440} /></Form.Item>
-        <Typography.Paragraph type="secondary">本校课时如下。如学校调整作息，可修改后重新导出；不会影响云端推送时段。</Typography.Paragraph>
-        {Object.keys(form.getFieldValue('slots') || {}).map(key => <div key={key}><Space wrap align="baseline">
-          <span style={{ display: 'inline-block', width: 60 }}>第{key}节</span>
+        <Collapse className="calendar-time-settings" items={[{ key: 'slots', label: '本校课时设置（一般无需修改）', forceRender: true, children: <>
+          <Typography.Paragraph type="secondary">如学校调整作息，可修改后重新导出；不会影响云端推送时段。</Typography.Paragraph>
+          {Object.keys(form.getFieldValue('slots') || {}).map(key => <div key={key}><Space wrap align="baseline">
+          <span style={{ display: 'inline-block', width: 76, whiteSpace: 'nowrap' }}>第{key}节</span>
           <Form.Item name={['slots', key, 0]} rules={[{ pattern: /^(?:[01]\d|2[0-3]):[0-5]\d$/, message: '格式 HH:mm' }]}><Input aria-label={`第${key}节开始时间`} style={{ width: 100 }} /></Form.Item>
           <span>至</span>
           <Form.Item name={['slots', key, 1]} rules={[{ pattern: /^(?:[01]\d|2[0-3]):[0-5]\d$/, message: '格式 HH:mm' }]}><Input aria-label={`第${key}节结束时间`} style={{ width: 100 }} /></Form.Item>
-        </Space></div>)}
+          </Space></div>)}
+        </> }]} />
       </Form>
       <Space wrap>
         <Button type="primary" size="large" loading={loading} disabled={!data?.weekOneMonday || !data?.courses.length} icon={<DownloadOutlined />} onClick={exportFile}>导出 ICS 文件</Button>
