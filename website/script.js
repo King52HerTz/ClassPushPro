@@ -3,32 +3,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initSmoothScroll();
     initNavbarEffect();
     initViewToggle();
-    initMobileMenu();
     const badge = document.querySelector('.badge-new');
-    if (badge) fetch('version.json', { cache: 'no-store' }).then(response => response.json()).then(release => {
-        badge.textContent = `v${release.version} · ${release.release_status || '正式发布'}`;
+    if (badge) fetch('site-info.json', { cache: 'no-store' }).then(response => response.json()).then(release => {
+        badge.textContent = `v${release.version} · ${release.status || '云端与日历'}`;
     }).catch(() => { badge.textContent = 'ClassPush · 云端与日历'; });
 });
-
-/* --- 移动端菜单逻辑 --- */
-function initMobileMenu() {
-    const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
-    const navLinks = document.querySelector('.nav-links');
-
-    if (mobileMenuBtn) {
-        mobileMenuBtn.addEventListener('click', () => {
-            navLinks.classList.toggle('active');
-            const icon = mobileMenuBtn.querySelector('i');
-            if (navLinks.classList.contains('active')) {
-                icon.classList.remove('fa-bars');
-                icon.classList.add('fa-times');
-            } else {
-                icon.classList.remove('fa-times');
-                icon.classList.add('fa-bars');
-            }
-        });
-    }
-}
 
 /* --- 视图切换逻辑 --- */
 function initViewToggle() {
@@ -59,6 +38,7 @@ function initViewToggle() {
 /* --- 雪花/粒子效果 --- */
 function initSnowCanvas() {
     const canvas = document.getElementById('snowCanvas');
+    if (!canvas || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const ctx = canvas.getContext('2d');
     
     let width, height;

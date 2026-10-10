@@ -34,11 +34,11 @@ async function action(fn) {
   catch (error) { feedback(error.name === 'AbortError' ? '等待超时，请刷新状态确认结果，不要连续重复提交。' : error.message || '网络异常，请重试', 'error'); }
   finally { busy = false; document.querySelectorAll('button').forEach(button => button.disabled = false); }
 }
-function showLogin() { $('loading').hidden = true; $('account-panel').hidden = true; $('login-panel').hidden = false; }
+function showLogin() { $('loading').hidden = true; $('account-panel').hidden = true; $('login-panel').hidden = false; $('code-form').hidden = true; $('login-form').hidden = false; challenge = ''; }
 async function loadAccount() {
   const account = await request('/account');
   $('loading').hidden = true; $('login-panel').hidden = true; $('account-panel').hidden = false;
-  $('account-owner').textContent = `学号 ${account.username} · 微信 ${account.uid}`;
+  $('account-owner').textContent = `学号 ${account.username} · WxPusher ${account.uid}`;
   for (const key of ['morning', 'evening', 'grades', 'paused']) $(key).checked = account[key];
   $('account-state').textContent = account.needs_auth ? '需要处理授权 / 订阅' : account.paused ? '已暂停' : account.morning || account.evening || account.grades ? '已开启' : '尚未开启时段';
   $('account-notice').hidden = !account.notice;

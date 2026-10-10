@@ -1,8 +1,10 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>云端托管说明 - ClassPush</title><link rel="stylesheet" href="cloud.css"></head><body>
-<header class="top"><a class="brand" href="index.html">Class<span>Push</span></a><a href="cloud.html">返回云端管理</a></header>
-<main><h1>先了解，再托管。</h1><section class="panel"><h2>我们保存什么</h2><p>仅限湖南工学院：学号、教务密码、WxPusher UID、登录会话、课表缓存、成绩基线和最近任务状态。用于代你登录教务查询，并按你选择的时段发送提醒，不用作其他用途。</p>
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>托管与隐私说明 - ClassPush</title><link rel="icon" href="favicon.ico"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="site.css?v=20261010b"><link rel="stylesheet" href="cloud.css?v=20261010b"><script src="site.js?v=20261010b" defer></script></head><body>
+<header data-site-header><a href="index.html">ClassPush 首页</a></header>
+<main id="main-content" class="site-page article-page"><nav class="site-breadcrumb" aria-label="当前位置"><a href="index.html">首页</a><span>/</span><a href="cloud.html">云端管理</a><span>/</span><span>托管说明</span></nav><div class="site-heading"><span class="site-kicker">CLASS PUSH · PRIVACY</span><h1>先了解，<span class="gradient-text">再托管。</span></h1><p>本地查询、日历导出和云端托管是独立的选择。</p></div><section class="site-panel">
+<h2>我们保存什么</h2><p>仅限湖南工学院：学号、教务密码、WxPusher UID、登录会话、课表缓存、成绩基线和最近任务状态。用于代你登录教务查询，并按你选择的时段发送通知，不用作其他用途。</p>
 <h2>保存在哪里</h2><p>资料在项目运营者的服务器上。凭据、课程和成绩缓存使用服务器独立密钥加密；浏览器使用 HTTPS 传输。运营者控制服务器及解密密钥，因此这不是“服务器也无法读取”的端到端加密。不要托管他人账号，也不建议在公共设备保存管理登录。</p>
-<h2>哪些数据交给第三方</h2><p>学号及密码用于访问学校教务系统。UID、验证码和课程/成绩通知通过 WxPusher 投递到微信，受学校、WxPusher 和微信服务状态与规则影响。</p>
-<h2>关闭与删除</h2><p>暂停仅停止定时任务，保留凭据和基线。删除会关闭任务并清除在线账号、缓存、成绩和会话；已发送到微信的消息无法撤回。任务记录在线保留最多30天，服务器备份由运营者按最多30天的保留策略销毁。重新开启需重新绑定。</p>
-<h2>边界</h2><p>不保证永久免登录、不绕过学校验证码或风控。教务密码失效需要重新验证。提醒与日历只供辅助，以学校正式课表、调课和成绩通知为准。遇到问题请通过官网联系开发者；不要在反馈中发送密码、验证码或 AppToken。</p>
-<a class="button primary" href="cloud.html">返回云端管理</a></section></main></body></html>
+<h2>哪些数据交给第三方</h2><p>学号及密码用于访问学校教务系统。UID、验证码和课程/成绩通知通过 WxPusher 投递，由独立 App 接收，受学校、WxPusher 服务和设备通知权限影响。</p>
+<h2>关闭与删除</h2><p>暂停仅停止定时任务，保留凭据和基线。删除会关闭任务并清除在线账号、缓存、成绩和会话；已提交给 WxPusher 的消息无法撤回。任务记录在线保留最多30天，服务器备份由运营者按最多30天的保留策略销毁。重新开启需重新绑定。</p>
+<h2>使用边界</h2><p>不保证永久免登录，不绕过学校验证码或风控。教务密码失效需要重新验证。提醒与日历只供辅助，以学校正式课表、调课和成绩通知为准。反馈时不要发送密码、验证码或 AppToken。</p>
+<a class="btn btn-primary" href="cloud.html">返回云端管理</a><a class="btn btn-secondary" href="faq.html">查看使用帮助</a></section></main>
+<footer data-site-footer class="site-footer"></footer></body></html>

@@ -14,47 +14,31 @@
     
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="site.css?v=20261010b">
+    <link rel="stylesheet" href="showcase.css?v=20261010-original">
+    <script src="site.js?v=20261010b" defer></script>
 </head>
 <body>
     <!-- 雪花/粒子背景画布 -->
     <canvas id="snowCanvas"></canvas>
 
     <!-- 导航栏 -->
-    <nav class="navbar">
-        <div class="container nav-container">
-            <div class="logo">
-                <span class="text-blue">Class</span><span class="text-dark">Push</span>
-            </div>
-            <div class="nav-links">
-                <a href="#features-anchor">核心功能</a>
-                <a href="#simulation-anchor">界面预览</a>
-                <a href="faq.html">使用帮助</a>
-                <a href="cloud.html">云端管理</a>
-                <a href="calendar.html">日历导出</a>
-                <a href="#about">关于开发者</a>
-                <a href="https://github.com/King52HerTz/ClassPushPro" target="_blank"><i class="fa-brands fa-github"></i> GitHub</a>
-                <a href="download.html" class="btn btn-sm btn-primary">立即下载</a>
-            </div>
-            <div class="mobile-menu-btn">
-                <i class="fa-solid fa-bars"></i>
-            </div>
-        </div>
-    </nav>
+    <header data-site-header><a href="index.html">ClassPush 首页</a></header>
 
     <!-- 主视觉区域 -->
-    <header class="hero">
+    <main id="main-content"><header class="hero">
         <div class="container hero-container">
             <div class="hero-content">
-                <span class="badge-new">v3.0.0 云端版 · 待验收</span>
-                <h1><span class="text-blue">Class</span><span class="text-dark">Push</span><br><span class="gradient-text">你的专属课表推送助手</span></h1>
-                <p class="hero-subtitle">专为湖南工学院学子打造。电脑保留查课查成绩，手机管理云端提醒。07:00 当天、20:00 次日，关机也不耽误；还可以把课表导入手机日历。</p>
+                <span class="badge-new">v3.0.0 · 云端开放 · 桌面版验收中</span>
+                <h1><span class="text-blue">Class</span><span class="text-dark">Push</span><br><span class="gradient-text">校园安排，带在身边</span></h1>
+                <p class="hero-subtitle">专为湖南工学院学子打造。电脑保留查课查成绩，手机管理云端提醒。通知由 WxPusher 独立 App 接收，07:00 看当天、20:00 看次日；也能把课表导入手机日历。</p>
                 <div class="hero-btns">
-                    <a href="download.html" class="btn btn-lg btn-primary"><i class="fa-brands fa-windows"></i> 立即下载 Windows 版</a>
-                    <a href="cloud.html" class="btn btn-lg btn-secondary"><i class="fa-solid fa-cloud"></i> 云端推送管理</a>
+                    <a href="cloud.html" class="btn btn-lg btn-primary"><i class="fa-solid fa-cloud"></i> 开始使用云端推送</a>
+                    <a href="download.html" class="btn btn-lg btn-secondary"><i class="fa-brands fa-windows"></i> 桌面版与下载说明</a>
                 </div>
                 <div class="hero-stats">
                     <div class="stat-item">
-                        <i class="fa-solid fa-check-circle"></i> <span>自动静默登录</span>
+                        <i class="fa-solid fa-check-circle"></i> <span>本校账号隔离</span>
                     </div>
                     <div class="stat-item">
                         <i class="fa-solid fa-check-circle"></i> <span>WxPusher 推送</span>
@@ -78,8 +62,8 @@
                     <div class="icon-box icon-green">
                         <i class="fa-solid fa-paper-plane"></i>
                     </div>
-                    <h3>微信直达</h3>
-                    <p>对接 WxPusher 平台，每日定时推送。精美的卡片式排版，课程、地点、老师一目了然。</p>
+                    <h3>App 提醒</h3>
+                    <p>通过 WxPusher 独立 App 接收课表与成绩变化。选择早间或晚间时段，不用让电脑一直开着。</p>
                 </div>
 
                 <div class="feature-card">
@@ -95,7 +79,7 @@
                         <i class="fa-solid fa-palette"></i>
                     </div>
                     <h3>现代化体验</h3>
-                    <p>基于 React + Ant Design 打造，支持“本周预览”视图，提供清晰的课程网格与列表展示。</p>
+                    <p>桌面控制台汇总课表、成绩、日历和云端入口。官网与云端管理使用统一导航，手机也能轻松操作。</p>
                 </div>
 
                 <div class="feature-card">
@@ -117,13 +101,38 @@
         </div>
     </header>
 
-    <section id="simulation-anchor" class="section features">
+    <section id="ways-anchor" class="section features usage-ways">
         <div class="container"><div class="section-header text-center"><h2>三种方式，按需使用</h2><p>本地查询、日历导出与云端提醒互不强制绑定</p></div>
         <div class="features-grid">
-            <div class="feature-card"><h3>云端提醒</h3><p>07:00 当天课表、20:00 次日课表，独立开关；成绩变化才通知。</p><a class="btn btn-primary" href="cloud.html">手机也能管理 →</a></div>
+            <div class="feature-card"><h3>云端提醒</h3><p>07:00 当天课表、20:00 次日课表，独立开关；成绩变化才通知。</p><a class="btn btn-primary" href="cloud.html">进入云端管理 →</a></div>
             <div class="feature-card"><h3>日历导出</h3><p>本周 / 未来7天 / 全学期 ICS。导入系统日历后，不用电脑常开。</p><a class="btn btn-secondary" href="calendar.html">日历功能说明 →</a></div>
-            <div class="feature-card"><h3>桌面查询</h3><p>保留熟悉的课表与成绩查询，不需要填写 UID；中文安装可自选位置。</p><a class="btn btn-secondary" href="download.html">下载 Windows 版 →</a></div>
+            <div class="feature-card"><h3>桌面查询</h3><p>保留熟悉的课表与成绩查询，不需要填写 UID；新版桌面为验收候选，中文安装可自选位置。</p><a class="btn btn-secondary" href="download.html">下载 Windows 版 →</a></div>
         </div></div>
+    </section>
+
+    <section id="simulation-anchor" class="section product-showcase">
+        <div class="container">
+            <div class="section-header text-center"><span class="site-kicker">TRY BEFORE YOU DOWNLOAD</span><h2>先点点看，再决定怎么用</h2><p>左边试用新版桌面，右边体验 WxPusher 收到课表消息的效果。全部为演示数据。</p></div>
+            <div class="showcase-layout">
+                <div class="desktop-demo">
+                    <div class="demo-window-bar"><span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span><strong>ClassPush · 新版桌面演示</strong><a href="demo/demo.html" target="_blank" rel="noopener">大窗口体验 ↗</a></div>
+                    <div class="demo-viewport"><iframe src="demo/demo.html" title="ClassPush 新版桌面交互演示（模拟数据）" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"></iframe></div>
+                    <p class="demo-caption">试试侧边栏：控制台 / 课表预览 / 成绩 / 日历导出。演示不连接教务，请勿输入真实账号。</p>
+                </div>
+                <div class="mobile-demo-column">
+                    <div class="showcase-phone">
+                        <div class="showcase-phone-top"><span>20:00</span><span class="phone-island" aria-hidden="true"></span><span>100%</span></div>
+                        <div class="showcase-phone-screen">
+                            <div class="pusher-app-bar"><span class="pusher-back" aria-hidden="true">‹</span><div><strong>WxPusher</strong><small>ClassPush · 订阅消息</small></div><span class="pusher-menu" aria-hidden="true">···</span></div>
+                            <div id="phone-receipt" class="phone-receipt" role="status" aria-live="polite"></div>
+                            <div id="phone-demo-content" class="pusher-message-feed" role="log" aria-label="演示接收消息，可上下滚动查看历史" aria-live="off" tabindex="0"></div>
+                        </div>
+                        <div class="phone-home-line" aria-hidden="true"></div>
+                    </div>
+                    <div class="phone-demo-controls"><label for="phone-message-kind">试试收到不同的消息</label><select id="phone-message-kind"><option value="schedule">晚间 · 明日课表</option><option value="empty">明天没有课</option><option value="grades">成绩有更新</option></select><button type="button" class="phone-send-demo">模拟收到一条消息</button><p>点击通知横幅查看消息，也可滚动看历史。<br>仅为 WxPusher App 接收示意，不会真实推送。</p></div>
+                </div>
+            </div>
+        </div>
     </section>
 
     <!-- 常见问题 -->
@@ -164,7 +173,7 @@
                         <h4>为什么需要 WxPusher UID？</h4>
                     </div>
                     <div class="faq-answer">
-                        <p>只有云端微信通知需要 UID，它是消息收件地址，不是微信号。桌面查询和日历导出不需要 UID，也无需填写 AppToken。</p>
+                        <p>只有云端App 通知需要 UID，它是消息收件地址，不是手机号。桌面查询和日历导出不需要 UID，也无需填写 AppToken。</p>
                     </div>
                 </div>
 
@@ -205,78 +214,10 @@
     </section>
 
     <!-- 页脚与关于合并 -->
-    <footer id="about" class="footer">
-        <div class="container">
-            <div class="footer-grid">
-                <!-- 品牌栏 -->
-                <div class="footer-col brand-col">
-                    <div class="footer-brand">
-                        <span class="text-blue">Class</span><span class="text-dark">Push</span>
-                    </div>
-                    <div class="footer-tagline">让技术服务于生活，让校园生活更简单。</div>
-                    <div class="footer-desc">
-                        一款专为湖工 (Hnit) 学子打造的课表推送工具。<br>开源、免费、好用。
-                    </div>
-                </div>
+    </main>
+    <footer id="about" data-site-footer class="site-footer"></footer>
 
-                <!-- 开发者与社交 -->
-                <div class="footer-col">
-                    <h4>关注开发者</h4>
-                    <ul class="footer-links-list">
-                        <li>
-                            <a href="#" target="_blank">
-                                <i class="fa-brands fa-bilibili" style="color:#fb7299"></i> Eliauk_312
-                            </a>
-                        </li>
-                        <li>
-                            <a href="https://github.com/King52HerTz/ClassPushPro" target="_blank">
-                                <i class="fa-brands fa-github"></i> GitHub 仓库
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- 联系信息 -->
-                <div class="footer-col">
-                    <h4>联系与反馈</h4>
-                    <ul class="footer-links-list">
-                        <li>
-                            <a href="mailto:shdx2024@qq.com">
-                                <i class="fa-regular fa-envelope"></i> shdx2024@qq.com
-                            </a>
-                        </li>
-                        <li>
-                            <span class="text-link">
-                                <i class="fa-brands fa-qq" style="color:#00a8f3"></i> 群: 1084681551
-                            </span>
-                        </li>
-                        <li>
-                            <a href="https://github.com/King52HerTz/ClassPushPro/issues" target="_blank">
-                                <i class="fa-solid fa-bug"></i> 提交 Issue 反馈
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-
-                <!-- 资源支持 -->
-                <div class="footer-col">
-                    <h4>资源与支持</h4>
-                    <ul class="footer-links-list">
-                        <li><a href="#">使用文档</a></li>
-                        <li><a href="faq.html">故障排查</a></li>
-                        <li><a href="#">更新日志</a></li>
-                    </ul>
-                </div>
-            </div>
-            
-            <div class="footer-bottom-bar">
-                <p style="margin-top: 5px; font-size: 0.85rem;">
-                    <a href="https://beian.miit.gov.cn/" target="_blank" style="color: #888; text-decoration: none;">湘ICP备2026003086号-2</a>
-                </p>
-            </div>
-        </div>
-    </footer>
-
-    <script src="script.js"></script>
+    <script src="script.js?v=20261010b"></script>
+    <script src="showcase.js?v=20261010-original"></script>
 </body>
 </html>

@@ -1,25 +1,60 @@
-:root { color-scheme: light; --blue:#1667d9; --ink:#182230; --muted:#596579; --line:#dfe6ef; }
-* { box-sizing:border-box; }
-[hidden] { display:none !important; }
-body { margin:0; background:#f4f7fc; color:var(--ink); font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif; }
-a { color:var(--blue); text-underline-offset:3px; }
-.top { max-width:1000px; margin:auto; padding:22px 24px; display:flex; align-items:center; justify-content:space-between; gap:20px; }
-.brand { font-weight:800; font-size:23px; text-decoration:none; }.brand span { color:var(--ink); }
-nav { display:flex; flex-wrap:wrap; gap:20px; } nav a { min-height:44px; display:inline-flex; align-items:center; }
-main { max-width:720px; margin:0 auto; padding:10px 24px 48px; }
-.intro { padding:24px 0 16px; }.eyebrow { color:var(--blue); letter-spacing:2px; font-size:12px; font-weight:700; }
-h1 { font-size:clamp(32px,6vw,46px); line-height:1.2; letter-spacing:-1px; margin:14px 0 18px; } h2 { font-size:21px; margin:0 0 12px; } h3 { font-size:18px; } p { margin:10px 0 18px; }
-.intro p,.muted { color:var(--muted); }.panel { padding:28px; margin:20px 0; background:#fff; border:1px solid var(--line); border-radius:16px; box-shadow:0 5px 20px #162d4f05; }
-label:not(.choice):not(.check) { display:block; font-weight:600; margin:20px 0 8px; }
-input:not([type=checkbox]) { display:block; width:100%; min-height:48px; padding:10px 12px; border:1px solid #b3bfd0; border-radius:8px; font:inherit; background:white; color:var(--ink); }
-input:focus-visible,button:focus-visible,summary:focus-visible,a:focus-visible { outline:3px solid #91caff; outline-offset:3px; }
-button,.button { min-height:46px; padding:10px 17px; border:1px solid #b3bfd0; background:#fff; color:var(--ink); border-radius:8px; font:inherit; font-weight:600; cursor:pointer; text-align:center; text-decoration:none; display:inline-block; }
-button:hover,.button:hover { background:#eef5ff; }.primary { background:var(--blue); color:#fff; border-color:var(--blue); }.primary:hover { background:#1255b5; }.danger { color:#b42318; border-color:#fda29b; } button:disabled { cursor:wait; opacity:.6; }
-form > button { width:100%; margin-top:18px; }.actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
-.hint { font-size:13px; color:var(--muted); margin:10px 0; }.check,.choice { display:flex; gap:12px; align-items:flex-start; cursor:pointer; }.check input,.choice input { width:21px; height:21px; flex-shrink:0; accent-color:var(--blue); margin-top:4px; }.consent { margin:20px 0; font-size:14px; }
-.choice { padding:17px 0; border-bottom:1px solid var(--line); }.choice strong,.choice small { display:block; }.choice small { color:var(--muted); font-size:13px; }.pause { margin:10px 0; border:0; background:#f5f8fe; padding:16px; border-radius:8px; }
-.heading { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:10px; }.badge { font-size:13px; color:var(--blue); }.notice,#feedback { padding:14px 16px; border-radius:8px; background:#fff5e5; border:1px solid #e8c178; color:#754a0b; } #feedback.error { color:#912018; background:#fff1f0; border-color:#f5aaa5; } #feedback.success { background:#eaf8f0; color:#20633e; border-color:#95c9ab; }
-.jobs { margin:0; padding:0; list-style:none; }.jobs li { border-top:1px solid var(--line); padding:16px 0; }.jobs p { margin:4px 0; overflow-wrap:anywhere; }.jobs small { color:var(--muted); }
-details { padding:14px 0; } summary { color:var(--blue); cursor:pointer; min-height:44px; }.qr { display:block; max-width:220px; width:100%; margin:16px auto; } hr { border:0; border-top:1px solid var(--line); margin:28px 0; } footer { padding:24px 0; color:var(--muted); text-align:center; font-size:13px; }
-@media(max-width:480px) { .top { padding:16px; }.top nav { gap:12px; font-size:14px; } main { padding:8px 16px 32px; }.panel { padding:20px; }.actions button { flex:1 1 112px; } }
-@media(prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; } }
+.cloud-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.12fr); gap:64px; align-items:start; }
+.cloud-intro { position:sticky; top:118px; padding-top:16px; }
+.cloud-intro h1 { font-size:clamp(32px,4vw,48px); }
+.cloud-intro > p { font-size:15px; }
+.cloud-times { display:flex; gap:44px; margin:30px 0; border-top:1px solid #dce6f4; border-bottom:1px solid #dce6f4; padding:22px 0; }
+.cloud-times strong { display:block; font-size:28px; font-weight:600; color:#315d92; font-variant-numeric:tabular-nums; }
+.cloud-times span { color:#627c9e; font-size:12px; }
+.cloud-onboarding { margin:32px 0 24px; }
+.cloud-onboarding h2 { font-size:14px; font-weight:600; margin-bottom:22px; }
+.cloud-onboarding ol { margin:0; padding:0; }
+.cloud-onboarding li { display:flex; gap:14px; margin:20px 0; }
+.cloud-onboarding li > span { flex-shrink:0; width:26px; height:26px; border:1px solid #d6e4f7; color:#6683a9; background:#f8fbff; border-radius:8px; display:grid; place-items:center; font-size:10px; }
+.cloud-onboarding strong { font-size:13px; font-weight:600; }
+.cloud-onboarding p { color:#667b95; font-size:12px; line-height:1.8; margin:6px 0; }
+.cloud-onboarding a,.text-link { color:#1263d6; font-size:12px; }
+.cloud-intro .cloud-boundary { font-size:12px; color:#73859d; line-height:1.9; }
+.panel { padding:30px; margin-bottom:20px; background:#fff; border:1px solid var(--site-line); border-radius:var(--site-radius); box-shadow:0 8px 32px #244b7805; }
+.cloud-workspace h2 { font-size:22px; font-weight:650; margin:8px 0 12px; }
+.cloud-workspace h3 { font-size:16px; margin-bottom:12px; }
+.form-kicker { font-size:11px; color:#7690b1; letter-spacing:1px; }
+.cloud-workspace .muted { color:var(--text-gray); font-size:13px; line-height:1.9; margin:0 0 24px; }
+.cloud-workspace a { color:#1263d6; }
+.cloud-workspace label:not(.choice):not(.check) { display:block; font-size:13px; font-weight:600; margin:22px 0 8px; }
+.field-optional { font-size:11px; font-weight:400; color:#8090a5; margin-left:6px; }
+.cloud-workspace input:not([type=checkbox]) { width:100%; min-height:48px; padding:10px 12px; border:1px solid #ccd7e6; border-radius:10px; font:inherit; font-size:16px; background:#fcfdff; color:var(--text-dark); }
+.cloud-workspace input:not([type=checkbox]):focus { border-color:#69a7ff; background:#fff; }
+.cloud-workspace button { min-height:46px; padding:10px 16px; border:1px solid #cdd8e8; background:#fff; color:var(--text-dark); border-radius:24px; font:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:background .2s,border-color .2s; }
+.cloud-workspace button:hover { border-color:#83b7fd; background:#f5f9ff; }
+.cloud-workspace .primary { background:var(--primary-gradient); color:#fff; border-color:transparent; box-shadow:0 4px 12px #1677ff18; }
+.cloud-workspace .primary:hover { background:#1263d6; }
+.cloud-workspace .danger { color:#a42d24; border-color:#f4b4ad; border-radius:10px; }
+.cloud-workspace button:disabled { cursor:wait; opacity:.6; }
+.cloud-workspace form > button { width:100%; margin-top:20px; }
+.actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; }
+.actions button { flex:1 1 104px; }
+.hint { font-size:11px; color:#6b7d94; line-height:1.9; margin:10px 0; }
+.form-footnote { text-align:center; }
+.check,.choice { display:flex; gap:12px; align-items:flex-start; cursor:pointer; }
+.check input,.choice input { width:20px; height:20px; flex-shrink:0; accent-color:var(--primary-color); margin-top:3px; }
+.consent { margin:20px 0 6px; font-size:12px; color:#5c708b; line-height:1.8; }
+.choice { padding:18px 0; border-bottom:1px solid var(--site-line); min-height:68px; }
+.choice strong,.choice small { display:block; }.choice strong { font-size:14px; }.choice small { color:#6b7d94; font-size:11px; margin-top:4px; }
+.pause { margin:14px 0 0; border:0; background:#f5f8fe; padding:16px; border-radius:12px; }
+.heading { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:8px; }
+.badge { font-size:11px; color:#315d92; background:#eef5ff; padding:4px 10px; border-radius:16px; }
+.notice,#feedback { padding:14px 16px; border-radius:12px; background:#fff8ec; border:1px solid #edcf98; color:#754a0b; font-size:13px; margin-bottom:20px; line-height:1.9; }
+#feedback.error { color:#912018; background:#fff1f0; border-color:#f5aaa5; }
+#feedback.success { background:#eaf8f0; color:#20633e; border-color:#95c9ab; }
+.jobs { margin:0; padding:0; list-style:none; }.jobs li { border-top:1px solid var(--site-line); padding:16px 0; font-size:13px; }.jobs p { margin:4px 0; overflow-wrap:anywhere; }.jobs small { color:#6b7d94; font-size:11px; }
+.cloud-workspace details:not(.panel) { background:#f6f9fe; border-radius:10px; padding:12px 14px; margin:14px 0; font-size:12px; line-height:1.9; }
+.cloud-workspace summary { color:#426a9d; cursor:pointer; min-height:44px; display:flex; align-items:center; font-size:12px; font-weight:600; }
+.cloud-workspace summary::before { content:"+"; margin-right:10px; font-size:17px; font-weight:400; }
+.cloud-workspace details[open] > summary::before { content:"−"; }
+.cloud-workspace details p { color:#60758f; font-size:12px; margin:10px 0; }
+.qr { display:block; max-width:210px; width:100%; margin:16px auto; border-radius:8px; }
+hr { border:0; border-top:1px solid var(--site-line); margin:28px 0; }
+.account-details { padding-top:14px; padding-bottom:14px; }.account-details > summary { font-size:14px; color:var(--text-dark); }
+.article-page { max-width:860px; }.article-page h2 { font-size:20px; margin:24px 0 12px; }.article-page p { line-height:1.9; font-size:14px; color:var(--text-gray); margin:12px 0; }.article-page .btn { margin-top:20px; }.article-page .site-heading { margin-bottom:30px; }
+@media(max-width:860px) { .cloud-layout { grid-template-columns:1fr; gap:24px; max-width:620px; margin:auto; }.cloud-intro { position:static; padding:0; }.cloud-onboarding { display:none; }.cloud-times { margin:22px 0; padding:16px 0; }.cloud-intro .cloud-boundary,.cloud-intro > .text-link { display:none; } }
+@media(max-width:480px) { .panel { padding:24px; }.cloud-intro h1 { font-size:34px; }.cloud-intro > p { font-size:14px; }.cloud-times { gap:44px; }.cloud-times strong { font-size:25px; }.cloud-workspace h2 { font-size:21px; }.account-details { padding-top:12px; padding-bottom:12px; } }

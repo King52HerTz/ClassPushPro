@@ -2,55 +2,71 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="referrer" content="same-origin"><title>云端推送管理 - ClassPush</title>
-  <link rel="icon" href="favicon.ico"><link rel="stylesheet" href="cloud.css">
-  <script src="cloud.js" defer></script>
+  <meta name="referrer" content="same-origin"><title>云端管理 - ClassPush</title>
+  <link rel="icon" href="favicon.ico"><link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="site.css?v=20261010b"><link rel="stylesheet" href="cloud.css?v=20261010b">
+  <script src="site.js?v=20261010b" defer></script><script src="cloud.js?v=20261010b" defer></script>
 </head>
 <body>
-  <header class="top"><a class="brand" href="index.html">Class<span>Push</span></a><nav aria-label="网站导航"><a href="calendar.html">日历教程</a><a href="download.html">桌面版</a></nav></header>
-  <main>
-    <section class="intro"><span class="eyebrow">湖南工学院 · CLOUD</span><h1>电脑关机，<br>课表照样到微信。</h1><p>早 07:00 看当天，晚 20:00 看次日。选择需要的时段，其余交给云端。</p></section>
-    <p id="feedback" role="status" aria-live="polite" tabindex="-1" hidden></p>
-    <section id="loading" class="panel">正在检查管理会话…</section>
-    <section id="login-panel" class="panel" hidden>
-      <h2>绑定 / 登录云端</h2><p class="muted">本机查询不等于云端托管。首次使用需通过教务密码和微信验证码确认身份。</p>
-      <form id="login-form">
-        <label for="username">本校学号</label><input id="username" name="username" autocomplete="username" required pattern="[A-Za-z0-9]{6,24}" maxlength="24">
-        <label for="password">教务密码</label><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="128">
-        <label for="uid">你的微信推送 UID</label><input id="uid" name="uid" autocomplete="off" placeholder="UID_…" maxlength="104">
-        <p class="hint">不是 AppToken。首次绑定填自己的 UID；已有账号可留空，验证码只发到原绑定微信，不能在此改绑。</p>
-        <details><summary>不知道 UID 在哪里？</summary><p>用微信扫描本校应用二维码，关注后复制消息中的 UID。不要填写 AppToken，也不要使用其他学校应用的 UID。</p><img class="qr" src="https://wxpusher.zjiecode.com/api/qrcode/uOkIOIyXg2AZRnwPRIVN78NLBXQaOxIlWs3QsRCoj4kZkyIidI7sFFrEGriCoftn.jpg" alt="湖南工学院 ClassPush 应用订阅二维码" loading="lazy"></details>
-        <label class="check consent"><input type="checkbox" id="consent" required><span>我同意将教务凭据加密托管到 ClassPush 服务器，用于查询课表、成绩及微信推送，已阅读<a href="privacy.html">托管说明</a>。</span></label>
-        <button type="submit" class="primary">验证教务并发送微信验证码</button>
-      </form>
-      <form id="code-form" hidden>
-        <label for="code">微信消息中的 6 位验证码</label><input id="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
-        <p class="hint">有效期 5 分钟，最多尝试 5 次。验证码仅用于本次登录，请勿转发。</p>
-        <div class="actions"><button type="submit" class="primary">确认并进入管理</button><button type="button" id="back">重新填写</button></div>
-      </form>
-    </section>
-    <section id="account-panel" hidden>
-      <div class="panel">
-        <div class="heading"><h2>我的云端提醒</h2><span id="account-state" class="badge"></span></div>
-        <p id="account-owner" class="muted"></p><p id="account-notice" class="notice" hidden></p>
-        <form id="settings-form">
-          <label class="choice"><input id="morning" type="checkbox"><span><strong>07:00 · 当天课表</strong><small>起床后看今天的安排</small></span></label>
-          <label class="choice"><input id="evening" type="checkbox"><span><strong>20:00 · 次日课表</strong><small>提前准备第二天的课程</small></span></label>
-          <label class="choice"><input id="grades" type="checkbox"><span><strong>成绩变化提醒</strong><small>首次仅建立基线，之后有变化才通知</small></span></label>
-          <label class="choice pause"><input id="paused" type="checkbox"><span><strong>暂停全部定时推送</strong><small>保留以上选择，取消暂停并保存后恢复</small></span></label>
-          <button type="submit" class="primary">保存设置</button>
-        </form>
-        <p class="hint">均为北京时间。服务器按队列发送，可能略有延迟；新开启或恢复从下一批次生效。成绩在 07:15–22:15 每小时检查。非教学期不发送旧课表。</p>
-        <div class="actions"><button id="test" type="button">发送测试通知</button><button id="refresh" type="button">刷新状态</button><button id="logout" type="button">退出管理</button></div>
-        <p class="hint">退出管理不会暂停提醒；暂停请勾选开关并保存。</p>
+  <header data-site-header><a href="index.html">ClassPush 首页</a></header>
+  <main id="main-content" class="site-page">
+    <nav class="site-breadcrumb" aria-label="当前位置"><a href="index.html">首页</a><span>/</span><span>云端管理</span></nav>
+    <div class="cloud-layout">
+      <section class="cloud-intro site-heading">
+        <span class="site-kicker">CLASS PUSH · CLOUD</span>
+        <h1>电脑关机，<br><span class="gradient-text">提醒依然在线。</span></h1>
+        <p>提前看明天，从容过今天。<br>课表和成绩变化，通过 <strong>WxPusher App</strong> 通知你。</p>
+        <div class="cloud-times"><div><strong>07:00</strong><span>当天课表</span></div><div><strong>20:00</strong><span>次日课表</span></div></div>
+        <div class="cloud-onboarding"><h2>第一次使用？</h2><ol><li><span>01</span><div><strong>准备接收端</strong><p>安装 WxPusher App，并开启系统通知权限。</p><a href="https://wxpusher.zjiecode.com/download/" target="_blank" rel="noopener noreferrer">下载 WxPusher App ↗</a></div></li><li><span>02</span><div><strong>订阅本校应用</strong><p>查看表单中的 UID 帮助，完成本校应用订阅，填写自己的 UID。</p></div></li><li><span>03</span><div><strong>验证并开启提醒</strong><p>在 App 中查看验证码，登录后选择时段、取消暂停并保存。</p></div></li></ol></div>
+        <p class="cloud-boundary">云端与本机独立。退出桌面账号不会停止云端提醒；首次绑定默认不发送通知。</p>
+        <a class="text-link" href="privacy.html">了解托管与隐私 →</a>
+      </section>
+      <div class="cloud-workspace">
+        <p id="feedback" role="status" aria-live="polite" tabindex="-1" hidden></p>
+        <section id="loading" class="panel">正在检查管理会话…</section>
+        <section id="login-panel" class="panel" hidden>
+          <span class="form-kicker">你的云端工作空间</span><h2>绑定 / 登录</h2>
+          <p class="muted">仅支持湖南工学院。用教务账号验证身份，再通过 WxPusher App 中的验证码确认接收人。</p>
+          <form id="login-form">
+            <label for="username">本校学号</label><input id="username" name="username" autocomplete="username" required pattern="[A-Za-z0-9]{6,24}" maxlength="24">
+            <label for="password">教务密码</label><input id="password" name="password" type="password" autocomplete="current-password" required maxlength="128">
+            <label for="uid">你的 WxPusher UID <span class="field-optional">已有账号可留空</span></label><input id="uid" name="uid" autocomplete="off" placeholder="UID_…" maxlength="104">
+            <p class="hint">首次绑定需要个人 UID，不是 AppToken。已有账号的验证码只发到原绑定接收人，不能在此改绑。</p>
+            <details id="uid-help"><summary>如何准备 App 和 UID？</summary><p>先安装并登录 WxPusher App。通过下方二维码打开本校应用的订阅页面，按页面提示完成订阅，然后在 WxPusher 中复制自己的 UID。通知和验证码在独立 App 中接收。</p><a href="https://wxpusher.zjiecode.com/download/" target="_blank" rel="noopener noreferrer">打开 WxPusher 官方下载页 ↗</a><img class="qr" src="https://wxpusher.zjiecode.com/api/qrcode/uOkIOIyXg2AZRnwPRIVN78NLBXQaOxIlWs3QsRCoj4kZkyIidI7sFFrEGriCoftn.jpg" alt="湖南工学院 ClassPush 应用订阅二维码" loading="lazy"></details>
+            <label class="check consent"><input type="checkbox" id="consent" required><span>我同意将教务凭据加密托管到服务器，用于查询及 App 通知，并已阅读<a href="privacy.html" target="_blank" rel="noopener noreferrer">托管说明 ↗</a>。</span></label>
+            <button type="submit" class="primary">验证教务并发送 App 验证码</button>
+            <p class="hint form-footnote">已有账号直接登录；首次使用在验证后选择提醒时段。</p>
+          </form>
+          <form id="code-form" hidden>
+            <label for="code">WxPusher App 中的 6 位验证码</label><input id="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required>
+            <p class="hint">有效期 5 分钟，最多尝试 5 次。只用于本次登录，请勿转发。</p>
+            <div class="actions"><button type="submit" class="primary">确认并进入管理</button><button type="button" id="back">返回修改</button></div>
+          </form>
+        </section>
+        <section id="account-panel" hidden>
+          <div class="panel">
+            <div class="heading"><h2>我的云端提醒</h2><span id="account-state" class="badge"></span></div>
+            <p id="account-owner" class="muted"></p><p id="account-notice" class="notice" hidden></p>
+            <form id="settings-form">
+              <label class="choice"><input id="morning" type="checkbox"><span><strong>07:00 · 当天课表</strong><small>起床后看今天的安排</small></span></label>
+              <label class="choice"><input id="evening" type="checkbox"><span><strong>20:00 · 次日课表</strong><small>提前准备第二天的课程</small></span></label>
+              <label class="choice"><input id="grades" type="checkbox"><span><strong>成绩变化提醒</strong><small>首次仅建立基线，之后有变化才通知</small></span></label>
+              <label class="choice pause"><input id="paused" type="checkbox"><span><strong>暂停全部定时推送</strong><small>保留选择，取消暂停并保存后恢复</small></span></label>
+              <button type="submit" class="primary">保存设置</button>
+            </form>
+            <p class="hint">北京时间，按队列发送。开启或恢复从下一批次生效。成绩在 07:15–22:15 每小时检查，非教学期不发送旧课表。</p>
+            <div class="actions"><button id="test" type="button">发送测试通知</button><button id="refresh" type="button">刷新状态</button><button id="logout" type="button">退出管理</button></div>
+            <p class="hint">请在 WxPusher App 查看测试通知。退出管理不等于暂停提醒。</p>
+          </div>
+          <div class="panel"><h2>最近任务</h2><p class="hint">“已完成”表示任务处理完成，不一定发送消息；已提交不等于已收到或已读，具体见说明。</p><ul id="jobs" class="jobs"></ul></div>
+          <details class="panel account-details"><summary>账号与资料管理</summary>
+            <form id="password-form"><label for="new-password">更新教务密码</label><input id="new-password" type="password" autocomplete="new-password" maxlength="128" required><button type="submit">验证并更新密码</button></form>
+            <hr><h3>关闭并删除云端托管</h3><p class="muted">删除在线凭据、缓存、成绩基线、任务和全部管理会话，不影响本机文件。历史备份按保留周期清理。</p>
+            <button id="delete" type="button" class="danger">关闭推送并删除资料</button>
+          </details>
+        </section>
       </div>
-      <div class="panel"><h2>最近任务</h2><p class="hint">“已完成”表示任务处理完成，不一定发送了消息，具体见说明。已提交推送不等于微信已读。</p><ul id="jobs" class="jobs"></ul></div>
-      <div class="panel"><h2>账号与资料</h2>
-        <form id="password-form"><label for="new-password">更新教务密码</label><input id="new-password" type="password" autocomplete="new-password" maxlength="128" required><button type="submit">验证并更新密码</button></form>
-        <hr><h3>关闭并删除云端托管</h3><p class="muted">删除在线凭据、课表缓存、成绩基线、任务记录和全部管理会话，不影响本机文件。备份按保留周期清理。</p>
-        <button id="delete" type="button" class="danger">关闭推送并删除资料</button>
-      </div>
-    </section>
-    <footer>ClassPush 3.0 · 仅支持湖南工学院<br><a href="privacy.html">托管与隐私说明</a> · <a href="faq.html">使用帮助</a></footer>
+    </div>
   </main>
+  <footer data-site-footer class="site-footer"></footer>
 </body></html>
