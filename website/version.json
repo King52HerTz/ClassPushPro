@@ -1,0 +1,8 @@
+{
+  "version": "3.0.0",
+  "release_date": "2026-10-10",
+  "release_status": "云端版验收候选",
+  "available": false,
+  "download_url": "https://classpush.eliauk312.top/ClassPush_Setup.exe",
+  "changelog": "新增本校云端托管：07:00 当天、20:00 次日独立开关\n新增成绩变化云端提醒，首次只建立基线\n日历导出独立成页，本地登录无需 UID\n移除电脑定时推送与 GitHub Actions 推送\n统一官网与软件版本信息，下载走自有服务器\n图文教程待补充真实操作图片"
+}

@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>常见问题排查 - ClassPush</title>
+    
+    <!-- 网页图标 -->
+    <link rel="icon" type="image/png" href="favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="shortcut icon" href="favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+    <link rel="manifest" href="site.webmanifest" />
+    
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 复用 Hero 样式并微调 */
+        .hero {
+            padding-bottom: 60px;
+            min-height: auto;
+        }
+        
+        .faq-container {
+            max-width: 900px;
+            margin: -40px auto 60px;
+            padding: 0 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .faq-category {
+            margin-bottom: 40px;
+        }
+
+        .category-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3436;
+            margin-bottom: 20px;
+            padding-left: 15px;
+            border-left: 5px solid #0984e3;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .faq-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            overflow: hidden;
+            border: 1px solid #f1f2f6;
+            transition: all 0.3s ease;
+        }
+
+        .faq-card:hover {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+        }
+
+        .faq-header {
+            padding: 20px 25px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+        }
+
+        .faq-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2d3436;
+            margin: 0;
+            flex: 1;
+            padding-right: 20px;
+        }
+
+        .faq-toggle-icon {
+            color: #b2bec3;
+            transition: transform 0.3s ease;
+        }
+
+        .faq-card.active .faq-toggle-icon {
+            transform: rotate(180deg);
+            color: #0984e3;
+        }
+
+        .faq-body {
+            padding: 0 25px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+            background: #fcfcfc;
+            color: #636e72;
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+
+        .faq-card.active .faq-body {
+            padding: 0 25px 25px;
+            max-height: 1000px; /* 近似无限高度 */
+            border-top: 1px solid #f1f2f6;
+        }
+
+        /* 内容样式增强 */
+        .faq-body strong { color: #2d3436; }
+        .faq-body code {
+            background: #dfe6e9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #d63031;
+        }
+        .faq-body ul, .faq-body ol {
+            padding-left: 20px;
+            margin: 10px 0;
+        }
+        .faq-body li { margin-bottom: 5px; }
+        .faq-alert {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+            border-left: 4px solid #ffeeba;
+        }
+        .faq-link {
+            color: #0984e3;
+            text-decoration: underline;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .category-title { font-size: 1.3rem; }
+            .faq-header h3 { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景 -->
+    <canvas id="snowCanvas"></canvas>
+
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <div class="logo">
+                <a href="index.html" style="text-decoration: none;">
+                    <span class="text-blue">Class</span><span class="text-dark">Push</span>
+                </a>
+            </div>
+            <div class="nav-links">
+                <a href="index.html">返回主页</a>
+                <a href="download.html">下载中心</a>
+                <a href="faq.html" class="active">故障排查</a>
+                <a href="https://github.com/King52HerTz/ClassPushPro" target="_blank"><i class="fa-brands fa-github"></i> GitHub</a>
+                <a href="download.html" class="btn btn-sm btn-primary">立即下载</a>
+            </div>
+            <div class="mobile-menu-btn">
+                <i class="fa-solid fa-bars"></i>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero 区域 -->
+    <header class="hero">
+        <div class="container hero-container" style="display: block; text-align: center; padding-top: 120px;">
+            <div class="hero-content" style="max-width: 800px; margin: 0 auto;">
+                <h1><span class="text-blue">常见问题</span> <span class="gradient-text">排查指南</span></h1>
+                <p class="hero-subtitle">汇总大家在安装和使用过程中可能遇到的问题及解决方案</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- FAQ 内容区域 -->
+    <div class="faq-container" id="faq-content">
+        <!-- 内容将由 JS 动态生成 -->
+    </div>
+
+    <!-- 页脚 -->
+    <footer id="about" class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <!-- 品牌栏 -->
+                <div class="footer-col brand-col">
+                    <div class="footer-brand">
+                        <span class="text-blue">Class</span><span class="text-dark">Push</span>
+                    </div>
+                    <div class="footer-tagline">让技术服务于生活，让校园生活更简单。</div>
+                </div>
+                
+                <!-- 开发者与社交 -->
+                <div class="footer-col">
+                    <h4>关注开发者</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="#" target="_blank"><i class="fa-brands fa-bilibili" style="color:#fb7299"></i> Eliauk_312</a></li>
+                        <li><a href="https://github.com/King52HerTz/ClassPushPro" target="_blank"><i class="fa-brands fa-github"></i> GitHub 仓库</a></li>
+                    </ul>
+                </div>
+
+                <!-- 联系信息 -->
+                <div class="footer-col">
+                    <h4>联系与反馈</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="mailto:shdx2024@qq.com"><i class="fa-regular fa-envelope"></i> shdx2024@qq.com</a></li>
+                        <li><span class="text-link"><i class="fa-brands fa-qq" style="color:#00a8f3"></i> 群: 1084681551</span></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom-bar">
+                <p>&copy; 2026 ClassPush (Dev by Eliauk). All rights reserved.</p>
+                <p style="margin-top: 5px; font-size: 0.85rem;">
+                    <a href="https://beian.miit.gov.cn/" target="_blank" style="color: #888; text-decoration: none;">湘ICP备2026003086号-2</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        // ==========================================
+        //  在此处添加或修改 FAQ 内容 (支持 HTML 标签)
+        // ==========================================
+        const FAQ_DATA = [
+            {
+                category: "🛠️ 安装拦截问题",
+                items: [
+                    {
+                        question: "安装时提示 Unable to execute file in the temporary directory...",
+                        answer: `
+                            <p><strong>原因：</strong>这是因为你的电脑系统（通常是公司电脑或经过“优化”的系统）开启了严格的安全策略，禁止从临时文件夹运行安装程序。</p>
+                            <p><strong>✅ 解决方案（按顺序尝试）：</strong></p>
+                            <ol>
+                                <li><strong>右键 -> 以管理员身份运行</strong>（90% 的人能解决）。</li>
+                                <li><strong>暂时关闭杀毒软件</strong>（如 360、火绒），安装完再打开。</li>
+                                <li><strong>换个位置</strong>：不要在微信/QQ 文件传输助手里直接点开。把安装包<strong>复制到 D 盘根目录</strong>，然后再右键管理员运行。</li>
+                            </ol>
+                        `
+                    },
+                    {
+                        question: "浏览器下载提示“通常不会下载...请确保信任”",
+                        answer: `
+                            <div class="faq-alert">这不是病毒！是因为软件比较新，微软数据库还没收录。</div>
+                            <p><strong>✅ 解决方案：</strong></p>
+                            <ol>
+                                <li>鼠标移到提示条上，点击右侧的 <strong>... (更多)</strong>。</li>
+                                <li>选择 <strong>保留 (Keep)</strong>。</li>
+                                <li>在弹出的确认框中，点击 <strong>显示详细信息</strong> -> <strong>仍要保留</strong>。</li>
+                            </ol>
+                        `
+                    }
+                ]
+            },
+            {
+                category: "⚪ 运行白屏问题",
+                items: [
+                    {
+                        question: "打开软件后窗口是白色的，什么都不显示",
+                        answer: `
+                            <p><strong>原因：</strong>ClassPush 依赖 Windows 系统的 <strong>WebView2 (Edge)</strong> 内核来显示界面。Win7 或旧版 Win10 可能缺失此组件。</p>
+                            <p><strong>✅ 解决方案：</strong></p>
+                            <ol>
+                                <li><strong>下载微软官方补丁</strong>：<a href="https://go.microsoft.com/fwlink/p/?LinkId=2124703" target="_blank" class="faq-link">点击下载 WebView2 运行库</a></li>
+                                <li>安装下载好的 <code>MicrosoftEdgeWebview2Setup.exe</code>。</li>
+                                <li>重新打开 ClassPush 即可。</li>
+                            </ol>
+                            <p><em>注：新版本软件已内置检测功能，如果缺失会自动弹窗提示下载。</em></p>
+                        `
+                    }
+                ]
+            },
+            {
+                category: "❓ 其他常见疑问",
+                items: [
+                    {
+                        question: "为什么我设置了自动推送，但没有收到消息？",
+                        answer: `
+                            <p>请检查以下几点：</p>
+                            <ul>
+                                <li><strong>云端是否开启</strong>：在<a href="cloud.html" class="faq-link">云端管理</a>选择时段并保存，电脑关机不影响任务。</li>
+                                <li><strong>授权及订阅</strong>：检查绑定微信、本校应用订阅及教务密码。AppToken 只由服务器配置，无需自己填写。</li>
+                                <li><strong>查看任务记录</strong>：暂停、授权失效、非教学期及异常都会显示说明。新启用从下一批次生效，超时不重复重发。</li>
+                            </ul>
+                        `
+                    },
+                    {
+                        question: "360 提示有病毒？",
+                        answer: `
+                            <p>Python 打包且未签名的软件有时会被拦截，但不能仅凭这一点断定所有告警都是误报。请核对官方下载来源和文件校验值。</p>
+                            <ul>
+                                <li>不建议关闭杀毒软件。若仍被拦截，请向开发者反馈具体检测名称，不要提供密码或验证码。</li>
+                                <li>如果不放心，可以去 <a href="https://github.com/King52HerTz/ClassPushPro" target="_blank" class="faq-link">GitHub 查看源代码</a> 自己编译。</li>
+                            </ul>
+                        `
+                    }
+                ]
+            }
+        ];
+        // ==========================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderFAQ();
+            initMobileMenu(); // 确保汉堡菜单可用
+        });
+
+        function renderFAQ() {
+            const container = document.getElementById('faq-content');
+            let html = '';
+
+            FAQ_DATA.forEach(category => {
+                html += `
+                    <div class="faq-category">
+                        <div class="category-title">${category.category}</div>
+                `;
+
+                category.items.forEach(item => {
+                    html += `
+                        <div class="faq-card">
+                            <div class="faq-header" onclick="toggleFAQ(this)">
+                                <h3>${item.question}</h3>
+                                <i class="fa-solid fa-chevron-down faq-toggle-icon"></i>
+                            </div>
+                            <div class="faq-body">
+                                ${item.answer}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function toggleFAQ(header) {
+            const card = header.parentElement;
+            card.classList.toggle('active');
+        }
+
+        function initMobileMenu() {
+            if (typeof window.initMobileMenu === 'function') return; // 如果 script.js 已经有了就不重复定义
+            
+            // 这里是一个简单的 fallback，以防 script.js 加载失败或版本不一致
+            const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+            const navLinks = document.querySelector('.nav-links');
+            if (mobileMenuBtn && navLinks) {
+                mobileMenuBtn.addEventListener('click', () => {
+                    navLinks.classList.toggle('active');
+                    const icon = mobileMenuBtn.querySelector('i');
+                    if (navLinks.classList.contains('active')) {
+                        icon.classList.remove('fa-bars');
+                        icon.classList.add('fa-times');
+                    } else {
+                        icon.classList.remove('fa-times');
+                        icon.classList.add('fa-bars');
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>

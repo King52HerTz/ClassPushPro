@@ -1,0 +1,26 @@
+[Unit]
+Description=ClassPush HNIT cloud API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=classpush
+Group=classpush
+WorkingDirectory=/opt/classpush-cloud/current
+EnvironmentFile=/etc/classpush-cloud.env
+Environment=TZ=Asia/Shanghai
+Environment=CP_HTTP_RETRIES=0
+Environment=CP_HTTP_CONNECT_TIMEOUT=5
+Environment=CP_HTTP_READ_TIMEOUT=10
+ExecStart=/opt/classpush-cloud/venv/bin/gunicorn --bind 127.0.0.1:8765 --workers 1 --threads 4 --timeout 100 cloud.wsgi:app
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/classpush-cloud
+
+[Install]
+WantedBy=multi-user.target
