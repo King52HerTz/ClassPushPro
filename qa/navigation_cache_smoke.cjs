@@ -33,14 +33,14 @@ async function main() {
     await page.goto(base + '/cloud.html');
     await page.locator('.nav-links').getByRole('link', { name: '首页', exact: true }).click();
     assert.ok(new URL(page.url()).searchParams.get('v'), 'home navigation must bypass pre-release HTML cache');
-    await page.getByText('v3.0.0 · 正式发布 · 云端提醒与日历导出', { exact: true }).waitFor();
+    await page.getByText('v3.0.1 · 正式发布 · 云端提醒与日历导出', { exact: true }).waitFor();
     await page.locator('.nav-links').getByRole('link', { name: '下载中心', exact: true }).click();
     assert.ok(new URL(page.url()).searchParams.get('v'), 'download navigation must bypass pre-release HTML cache');
-    await page.getByRole('link', { name: '下载桌面版 v3.0.0' }).waitFor();
+    await page.getByRole('link', { name: '下载桌面版 v3.0.1' }).waitFor();
     await page.getByRole('link', { name: 'ClassPush 首页', exact: true }).click();
     await page.getByText('校园安排，带在身边', { exact: true }).waitFor();
     assert.equal(await page.getByText('OLD CACHED PAGE', { exact: true }).count(), 0);
-    console.log('Warm-cache regression passed: cached old homepage/download seeded, new navigation/brand bypass cache and keep v3.0.0.');
+    console.log('Warm-cache regression passed: cached old homepage/download seeded, new navigation/brand bypass cache and keep v3.0.1.');
   } finally { await browser.close(); }
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; }).finally(() => server.close());

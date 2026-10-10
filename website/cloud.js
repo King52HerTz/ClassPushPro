@@ -41,11 +41,13 @@ async function loadAccount() {
   $('account-owner').textContent = `学号 ${account.username} · WxPusher ${account.uid}`;
   for (const key of ['morning', 'evening', 'grades', 'paused']) $(key).checked = account[key];
   $('account-state').textContent = account.needs_auth ? '需要处理授权 / 订阅' : account.paused ? '已暂停' : account.morning || account.evening || account.grades ? '已开启' : '尚未开启时段';
-  $('account-notice').hidden = !account.notice;
-  $('account-notice').textContent = account.notice;
+  const cooldown = Number(account.school_cooldown_until || 0) - Date.now() / 1000;
+  const notice = account.notice || (cooldown > 0 ? `教务查询保护暂停中，约 ${Math.ceil(cooldown / 60)} 分钟后再尝试。你的开关已保存，缓存课表仍可按时发送。` : '');
+  $('account-notice').hidden = !notice;
+  $('account-notice').textContent = notice;
   $('jobs').replaceChildren();
-  const kinds = { morning: '晨间课表', evening: '晚间课表', grades: '成绩检查' };
-  const states = { done: '已完成', failed: '未完成', unknown: '结果待确认', needs_auth: '需要登录', needs_binding: '需要重新订阅', skipped: '未发送', running: '处理中' };
+  const kinds = { morning: '晨间课表', evening: '晚间课表', grades: '成绩检查', prepare_morning: '晨间课表预取', prepare_evening: '晚间课表预取' };
+  const states = { done: '已完成', failed: '未完成', unknown: '结果待确认', needs_auth: '需要登录', needs_binding: '需要重新订阅', skipped: '未发送', running: '处理中', deferred: '查询保护，等待重试' };
   for (const job of account.jobs) {
     const li = document.createElement('li'), heading = document.createElement('strong'), message = document.createElement('p'), date = document.createElement('small');
     heading.textContent = `${kinds[job.kind] || '任务'} · ${states[job.status] || job.status}`;

@@ -2,7 +2,7 @@
 // One navigation and footer for the introduction site and cloud workspace.
 const currentPage = location.pathname.split('/').pop() || 'index.html';
 const pages = [['index.html', '首页'], ['cloud.html', '云端管理'], ['calendar.html', '日历说明'], ['download.html', '下载中心'], ['faq.html', '使用帮助']];
-const siteRelease = '20261011-nav1';
+const siteRelease = '20261011-policy1';
 const header = document.querySelector('[data-site-header]');
 if (header) {
   header.innerHTML = `<a class="skip-link" href="#main-content">跳到主要内容</a><nav class="navbar" aria-label="网站导航"><div class="container nav-container"><a class="logo site-logo" href="index.html" aria-label="ClassPush 首页"><img src="favicon-96x96.png" alt=""><span><span class="text-blue">Class</span><span class="text-dark">Push</span></span></a><div class="nav-links" id="site-navigation">${pages.map(([url, label]) => `<a href="${url}" ${currentPage === url ? 'aria-current="page"' : ''}>${label}</a>`).join('')}<a class="btn btn-sm btn-primary" href="cloud.html">进入云端</a></div><button type="button" class="mobile-menu-btn" aria-label="打开导航" aria-controls="site-navigation" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button></div></nav>`;

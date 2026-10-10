@@ -31,7 +31,7 @@ exec(compile(ast.Module(body=[api_class], type_ignores=[]), "v2.1.4-update-metho
 api = namespace["Api"]()
 release = api.check_update()
 assert release["status"] == "success"
-assert release["data"]["version"] == "3.0.0"
+assert release["data"]["version"] == "3.0.1"
 with tempfile.TemporaryDirectory(prefix="classpush-update-check-") as temporary:
     original_expanduser = os.path.expanduser
     with patch.object(os.path, "expanduser", side_effect=lambda value: temporary if value == "~" else original_expanduser(value)):
@@ -41,4 +41,4 @@ with tempfile.TemporaryDirectory(prefix="classpush-update-check-") as temporary:
     assert downloaded.is_relative_to(temporary)
     assert downloaded.stat().st_size == release["data"]["size_bytes"]
     assert hashlib.sha256(downloaded.read_bytes()).hexdigest() == release["data"]["sha256"]
-print("Legacy v2.1.4 update methods passed: live 3.0.0 check, server installer download and SHA256. No app startup or installation.")
+print("Legacy v2.1.4 update methods passed: live 3.0.1 check, server installer download and SHA256. No app startup or installation.")

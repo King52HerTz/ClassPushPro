@@ -55,7 +55,7 @@ def click(text):
 
 
 repo = Path(__file__).resolve().parents[1]
-exe = repo / "private/packages/ClassPush_Setup_3.0.0.exe"
+exe = repo / "private/packages/ClassPush_Setup_3.0.1.exe"
 process = subprocess.Popen([str(exe), "/LANG=chinesesimplified"], creationflags=subprocess.CREATE_NO_WINDOW)
 process_ids = {process.pid}
 try:

@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用帮助 - ClassPush</title><link rel="icon" href="favicon.ico"><link rel="stylesheet" href="style.css?v=20261011-nav1"><link rel="stylesheet" href="site.css?v=20261011-nav1"><script src="site.js?v=20261011-nav1" defer></script></head><body>
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>使用帮助 - ClassPush</title><link rel="icon" href="favicon.ico"><link rel="stylesheet" href="style.css?v=20261011-policy1"><link rel="stylesheet" href="site.css?v=20261011-policy1"><script src="site.js?v=20261011-policy1" defer></script></head><body>
 <header data-site-header><a href="index.html">ClassPush 首页</a></header><main id="main-content" class="site-page help-page"><nav class="site-breadcrumb" aria-label="当前位置"><a href="index.html">首页</a><span>/</span><span>使用帮助</span></nav><div class="site-heading"><span class="site-kicker">CLASS PUSH · HELP</span><h1>遇到问题，<span class="gradient-text">从这里开始。</span></h1><p>先分清本机查询、云端托管和通知接收端，解决问题会更简单。</p></div>
 <div class="help-shortcuts"><a href="cloud.html">管理云端提醒 →</a><a href="https://wxpusher.zjiecode.com/download/" target="_blank" rel="noopener noreferrer">下载通知 App ↗</a><a href="calendar.html">了解日历导出 →</a></div>
 <section class="help-section"><h2>云端与通知</h2>
@@ -6,7 +6,8 @@
 <details class="help-item"><summary>UID 和 AppToken 有什么区别？</summary><p>UID 是你的个人接收标识，首次云端绑定需要；不是手机号或 AppToken。AppToken 由本项目服务器统一配置，同学不需要填写。已有云端账号登录时可留空 UID，验证码只发往原绑定接收人。本地查询和日历导出都不需要 UID。</p></details>
 <details class="help-item"><summary>为什么开启后没有收到提醒？</summary><p>检查时段开关、暂停状态，并点击保存。开启或恢复从下一批次生效，不补发已过窗口的提醒。再发送一条测试通知，查看 App 消息列表和系统通知权限，检查是否订阅了本校应用。教务密码失效或订阅异常时，请按管理页提示处理。不要连续重复发送。</p><p>“已提交”仅表示接口接受了请求，不等于设备已收到；“任务已完成”也可能是当天无课或非教学期而未发送，需看具体任务说明。</p></details>
 <details class="help-item"><summary>退出管理、关闭电脑，会停止推送吗？</summary><p>不会。需要停止时，请在云端管理勾选“暂停全部定时推送”并保存，或删除托管资料。删除会撤销在线账号、缓存和会话，但不能撤回已经提交给 WxPusher 的消息。</p></details>
-<details class="help-item"><summary>为什么第一次开启成绩提醒没有消息？</summary><p>首次开启以及进入新学期时只建立基线，不群发历史成绩。之后07:15–22:15按北京时间每小时检查，有变化才通知。教务系统不可用时无法保证按时获取。</p></details>
+<details class="help-item"><summary>为什么第一次开启成绩提醒没有消息？</summary><p>首次开启以及进入新学期时只建立基线，不群发历史成绩。之后每天北京时间 08:30、13:30、21:30 三批错峰检查，按账号分散查询，有变化才通知，不保证即时到达。教务限流或不可用时会暂停查询，不连续重试。</p></details>
+<details class="help-item"><summary>课表提醒为什么显示数据时间，或提示预取未完成？</summary><p>为减少教务压力，06:00、19:00 开始分批预取，07:00、20:00 尽量只使用本账号的快照发送。快照最长有效 18 小时，可能未包含之后的即时调课；请核对消息中的数据时间，以学校通知为准。预取失败或过期不会临时集中补查，过期提醒不补发。限流时可在管理页看到查询保护状态。</p></details>
 </section><section class="help-section"><h2>桌面与日历</h2>
 <details class="help-item"><summary>设置页去哪了？如何切换本机账号？</summary><p>新版桌面已把“仪表盘”改为“控制台”，移除独立设置页。右上角“本机账号”可以切换或退出，本地查询和云端托管相互独立。提醒时间、课时设置位于“日历导出”页面。</p></details>
 <details class="help-item"><summary>安装后白屏怎么办？</summary><p>先确认下载来源和版本，检查 Windows 是否安装 WebView2 运行时。若仍白屏，请反馈版本、系统信息和脱敏后的日志，不要反复关闭所有安全软件或提供账号密码。安装器未商业签名，信誉告警不能一概当成误报；请核对来源后再决定。</p><a href="https://go.microsoft.com/fwlink/p/?LinkId=2124703" target="_blank" rel="noopener noreferrer">微软 WebView2 官方入口 ↗</a></details>
