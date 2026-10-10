@@ -9,6 +9,8 @@ import secrets
 import shutil
 import subprocess
 import sys
+import time
+import urllib.request
 from pathlib import Path
 
 BASE = Path('/opt/classpush-cloud')
@@ -33,8 +35,10 @@ def configure_secret_file():
         for line in legacy.read_text().splitlines():
             key, separator, value = line.partition('=')
             if separator:
-                values[key.strip()] = value.strip().strip('\"\'')
-    token = values.get('CP_APP_TOKEN', '')
+                values[key.strip().removeprefix('export ')] = value.strip().strip('\"\'')
+    private_token = Path('/root/classpush-hnit-token.txt')
+    token = (private_token.read_text(encoding='utf-8-sig').strip() if private_token.exists()
+             else values.get('CP_APP_TOKEN', values.get('WXPUSHER_APP_TOKEN', '')))
     if not re.fullmatch(r'AT_[A-Za-z0-9]+', token):
         raise RuntimeError('Existing HNIT token missing; configure server environment privately')
     content = ('CLOUD_ORIGIN=https://classpush.eliauk312.top\n'
@@ -44,6 +48,8 @@ def configure_secret_file():
     fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, 'w') as handle:
         handle.write(content)
+    if private_token.exists():
+        private_token.unlink()
 
 
 def main():
@@ -96,6 +102,18 @@ def main():
     run('systemctl', 'daemon-reload')
     run('systemctl', 'enable', '--now', 'classpush-cloud-api', 'classpush-cloud-worker')
     run('systemctl', 'restart', 'classpush-cloud-api', 'classpush-cloud-worker')
+    for attempt in range(30):
+        try:
+            with urllib.request.urlopen('http://127.0.0.1:8765/api/cloud/health', timeout=2) as response:
+                if response.status == 200:
+                    break
+        except (OSError, ValueError):
+            pass
+        time.sleep(1)
+    else:
+        run('systemctl', 'stop', 'classpush-cloud-api', 'classpush-cloud-worker')
+        raise RuntimeError('Cloud API health check failed; public website was not changed')
+    run('systemctl', 'is-active', '--quiet', 'classpush-cloud-worker')
     # The HTTPS configuration already exists. Add only one include directive.
     snippet = Path('/www/server/panel/vhost/nginx/classpush-cloud.inc')
     shutil.copy2(release / 'deploy/nginx-cloud.conf', snippet)
