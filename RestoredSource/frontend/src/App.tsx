@@ -93,7 +93,7 @@ export default function App() {
         <div className="sidebar-bottom">
           <Tooltip title="开发者的秘密基地"><Button className="developer-egg-trigger" type="text" aria-label="打开开发者彩蛋" icon={<GiftOutlined />} onClick={() => setEggOpen(true)}>{!collapsed && '发现一枚彩蛋'}</Button></Tooltip>
           <Tooltip title={collapsed ? '展开导航' : '收起导航'}>
-            <Button type="text" aria-label={collapsed ? '展开导航' : '收起导航'} icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed(!collapsed)} />
+            <Button className="sidebar-toggle" type="text" aria-label={collapsed ? '展开导航' : '收起导航'} icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed(!collapsed)} />
           </Tooltip>
         </div>
       </Layout.Sider>

@@ -88,6 +88,17 @@ async function main() {
   await desktop.getByRole('menuitem', { name: '控制台', exact: true }).waitFor();
   assert.equal(await desktop.locator('.sidebar-version').count(), 0);
   assert.equal(await desktop.getByText('把校园安排，带在身边。', { exact: true }).count(), 0);
+  const centeredToggle = () => desktop.locator('.sidebar-toggle').evaluate(button => {
+    const toggle = button.getBoundingClientRect(), sidebar = button.closest('.workspace-sidebar').getBoundingClientRect();
+    return Math.abs(toggle.x + toggle.width / 2 - sidebar.x - sidebar.width / 2) < 1 && toggle.width >= 44 && toggle.height >= 44;
+  });
+  assert.equal(await centeredToggle(), true, 'expanded sidebar toggle is centered with a 44px target');
+  await desktop.locator('.sidebar-toggle').click();
+  await desktop.waitForFunction(() => document.querySelector('.workspace-sidebar').offsetWidth === 76);
+  assert.equal(await centeredToggle(), true, 'collapsed sidebar toggle stays centered');
+  await desktop.screenshot({ path: path.join(output, 'desktop-sidebar-collapsed.png'), fullPage: true });
+  await desktop.locator('.sidebar-toggle').click();
+  await desktop.waitForFunction(() => document.querySelector('.workspace-sidebar').offsetWidth === 224);
   await desktop.screenshot({ path: path.join(output, 'desktop-console.png'), fullPage: true });
   await desktop.getByRole('button', { name: '管理本机账号' }).click();
   await desktop.getByText('切换本机账号', { exact: true }).waitFor();
