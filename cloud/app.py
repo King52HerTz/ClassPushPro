@@ -118,7 +118,7 @@ def create_app(store=None, school=None, sender=None, clock=time.time, origin=Non
                 db.execute("DELETE FROM challenges WHERE subject=?", (subject,))
                 db.execute("INSERT INTO challenges(id,subject,code,state,expires) VALUES(?,?,?,?,?)",
                            (challenge, subject, store.digest(challenge + code), store.seal(state, challenge), clock() + 300))
-            return jsonify(challenge=challenge, message="验证码已发送到绑定的微信，请在 5 分钟内输入")
+            return jsonify(challenge=challenge, message="验证码已提交到绑定的 WxPusher，请在 App 中查看并在 5 分钟内输入")
 
     @app.post(PREFIX + "/auth/confirm")
     def confirm():
@@ -229,7 +229,7 @@ def create_app(store=None, school=None, sender=None, clock=time.time, origin=Non
         if "订阅" in g.account["notice"]:
             with store.db() as db:
                 db.execute("UPDATE accounts SET needs_auth=0,notice='' WHERE id=?", (g.account["id"],))
-        return jsonify(message="测试消息已提交 WxPusher，请查看微信")
+        return jsonify(message="测试消息已提交 WxPusher，请在独立 App 中查看，并检查通知权限")
 
     @app.delete(PREFIX + "/account")
     @authorized

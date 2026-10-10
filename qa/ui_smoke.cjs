@@ -18,11 +18,12 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': (types[path.extname(file)] || 'application/octet-stream') + ';charset=utf-8' });
   fs.createReadStream(file).pipe(res);
 });
+let activeBrowser;
 
 async function main() {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const base = 'http://127.0.0.1:' + server.address().port;
-  const browser = await chromium.launch({ headless: true, ...(process.env.EDGE_PATH ? { executablePath: process.env.EDGE_PATH } : {}) });
+  const browser = activeBrowser = await chromium.launch({ headless: true, ...(process.env.EDGE_PATH ? { executablePath: process.env.EDGE_PATH } : {}) });
   const errors = [];
   const page = await browser.newPage({ viewport: { width: 375, height: 812 } });
   page.on('pageerror', error => errors.push(error.message));
@@ -41,6 +42,8 @@ async function main() {
   });
   await page.goto(base + '/cloud.html');
   await page.locator('#login-panel:not([hidden])').waitFor();
+  await page.screenshot({ path: path.join(output, 'cloud-login-mobile.png'), fullPage: true });
+  assert.equal(await page.getByText('微信', { exact: false }).count(), 0);
   await page.locator('#username').fill('20260001');
   await page.locator('#password').fill('FAKE_PASSWORD_ONLY');
   await page.locator('#uid').fill('UID_FAKEUSER00001');
@@ -56,9 +59,11 @@ async function main() {
   await page.locator('#feedback.success').waitFor();
   assert.equal(account.evening, true);
   assert.equal(account.paused, false);
-  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'mobile cloud overflow');
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: path.join(output, 'cloud-mobile.png'), fullPage: true });
   page.on('dialog', dialog => dialog.accept());
+  await page.locator('.account-details > summary').click();
   await page.locator('#delete').click();
   await page.locator('#login-panel:not([hidden])').waitFor();
   const desktop = await browser.newPage({ viewport: { width: 1200, height: 850 } });
@@ -76,7 +81,13 @@ async function main() {
     } };
   });
   await desktop.goto(base + '/desktop/index.html');
-  await desktop.getByText('课表随身，电脑不用一直开着').waitFor();
+  await desktop.getByText('校园安排，一处就绪。').waitFor();
+  assert.equal(await desktop.getByRole('menuitem', { name: '设置', exact: true }).count(), 0);
+  await desktop.getByRole('menuitem', { name: '控制台', exact: true }).waitFor();
+  await desktop.screenshot({ path: path.join(output, 'desktop-console.png'), fullPage: true });
+  await desktop.getByRole('button', { name: '管理本机账号' }).click();
+  await desktop.getByText('切换本机账号', { exact: true }).waitFor();
+  await desktop.keyboard.press('Escape');
   await desktop.getByRole('menuitem', { name: '日历导出' }).click();
   await desktop.getByText('2026-08-31', { exact: true }).waitFor();
   await desktop.getByRole('button', { name: '导出 ICS 文件' }).click();
@@ -89,13 +100,35 @@ async function main() {
   const site = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   site.on('pageerror', error => errors.push(error.message));
   await site.goto(base + '/index.html');
-  await site.getByText('v3.0.0 · 云端版验收候选').waitFor();
+  await site.getByText('v3.0.0 · 云端开放 · 桌面版验收中').waitFor();
   await site.screenshot({ path: path.join(output, 'website-home.png'), fullPage: true });
   await site.goto(base + '/download.html');
   await site.getByText('新版安装包待验收').waitFor();
   assert.equal(await site.locator('.changelog-list li').count(), 6);
+  for (const url of ['index.html', 'cloud.html', 'calendar.html', 'download.html', 'faq.html', 'privacy.html']) {
+    await site.goto(base + '/' + url);
+    assert.equal(await site.locator('.nav-links a').count(), 6);
+    await site.locator('.site-footer').getByRole('link', { name: '云端推送管理', exact: true }).waitFor();
+    assert.equal(await site.locator('a[href="#"]').count(), 0);
+  }
+  await site.goto(base + '/cloud.html');
+  await site.screenshot({ path: path.join(output, 'cloud-login-desktop.png'), fullPage: true });
+  await site.setViewportSize({ width: 375, height: 812 });
+  await site.emulateMedia({ reducedMotion: 'reduce' });
+  await site.getByRole('button', { name: '打开导航', exact: true }).click();
+  assert.equal(await site.getByRole('button', { name: '关闭导航', exact: true }).getAttribute('aria-expanded'), 'true');
+  await site.locator('.nav-links').getByRole('link', { name: '首页', exact: true }).click();
+  await site.getByText('校园安排，带在身边', { exact: true }).waitFor();
+  if (await site.evaluate(() => document.documentElement.scrollWidth > innerWidth)) console.log(await site.evaluate(() => [...document.querySelectorAll('body *')].map(element => ({ tag: element.tagName, class: element.className, right: element.getBoundingClientRect().right })).filter(element => element.right > innerWidth + 1).slice(0, 12)));
+  assert.equal(await site.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'mobile website overflow');
+  await desktop.setViewportSize({ width: 375, height: 812 });
+  await desktop.locator('.workspace-header').getByRole('button', { name: '展开导航', exact: true }).click();
+  await desktop.getByRole('menuitem', { name: '控制台', exact: true }).click();
+  await desktop.getByText('校园安排，一处就绪。').waitFor();
+  await desktop.screenshot({ path: path.join(output, 'desktop-console-mobile.png'), fullPage: true });
+  assert.equal(await desktop.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'mobile desktop overflow');
   assert.deepEqual(errors, []);
   await browser.close();
-  console.log('UI smoke passed: mobile binding/settings/deletion, desktop calendar/course/cloud, website version/download. Synthetic data only.');
+  console.log('UI smoke passed: mobile binding/settings/deletion, console/account/calendar/course/cloud, shared six-page navigation, mobile menu, no dead links or old receiving-channel copy. Synthetic data only.');
 }
-main().catch(error => { console.error(error.message); process.exitCode = 1; }).finally(() => server.close());
+main().catch(error => { console.error(error.message); process.exitCode = 1; }).finally(async () => { await activeBrowser?.close(); server.close(); });

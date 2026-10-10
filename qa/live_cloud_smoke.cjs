@@ -24,7 +24,7 @@ async function main() {
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(origin + '/cloud.html');
     await page.locator('#login-panel:not([hidden])').waitFor();
-    await page.getByRole('button', { name: '验证教务并发送微信验证码' }).waitFor();
+    await page.getByRole('button', { name: '验证教务并发送 App 验证码' }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
     assert.deepEqual(errors, []);
     await page.screenshot({ path: path.resolve(__dirname, '../private/qa-output/live-cloud-login.png'), fullPage: true });
