@@ -63,12 +63,7 @@ if %errorlevel% neq 0 (
 
 if exist dist\ClassPush\config.json del dist\ClassPush\config.json
 
-if exist "%~dp0private\hnit_app_token.txt" (
-    copy /y "%~dp0private\hnit_app_token.txt" "%~dp0dist\ClassPush\hnit_app_token.txt" >nul
-    echo Private HNIT AppToken injected into the local build only.
-) else (
-    echo WARNING: private\hnit_app_token.txt not found; push notifications will need an existing local token.
-)
+REM Cloud AppToken is server-only. Never inject it into desktop distributions.
 
 echo.
 echo [4/4] Build finished!

@@ -2,7 +2,7 @@ import os
 import re
 import hashlib
 import html
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 def _escape_ics_text(value):
@@ -35,7 +35,7 @@ class CalendarExporter:
         self.courses = courses if isinstance(courses, list) else []
         self.current_week = str(current_week or "1")
         self.alarm_minutes = self._normalize_alarm_minutes(alarm_minutes)
-        self.allowed_weeks = set(allowed_weeks or []) if allowed_weeks else None
+        self.allowed_weeks = set(allowed_weeks) if allowed_weeks is not None else None
         self.date_range = date_range if isinstance(date_range, tuple) and len(date_range) == 2 else None
         self.exported_event_count = 0
         self.export_timestamp_utc = ""
@@ -44,14 +44,14 @@ class CalendarExporter:
     def export_to_file(self, file_path):
         content = self.build_ics_content()
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        with open(file_path, "w", encoding="utf-8", newline="\r\n") as file_obj:
+        with open(file_path, "w", encoding="utf-8", newline="") as file_obj:
             file_obj.write(content)
         return file_path
 
     def build_ics_content(self):
         week_one_monday = self._parse_semester_start_date()
         self.exported_event_count = 0
-        export_now = datetime.utcnow()
+        export_now = datetime.now(timezone.utc)
         self.export_timestamp_utc = export_now.strftime("%Y%m%dT%H%M%SZ")
         self.export_sequence = int(export_now.timestamp())
         lines = [
@@ -84,7 +84,7 @@ class CalendarExporter:
 
     def _parse_semester_start_date(self):
         if not re.match(r"^\d{4}-\d{2}-\d{2}$", self.semester_start_date):
-            raise ValueError("请先在设置中填写学期第1周周一日期")
+            raise ValueError("学期第1周周一尚未确认，请先刷新教务课表")
 
         try:
             start_date = datetime.strptime(self.semester_start_date, "%Y-%m-%d").date()

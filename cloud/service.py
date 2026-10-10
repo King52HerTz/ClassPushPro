@@ -1,11 +1,13 @@
 import sys
 import copy
+import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "RestoredSource" / "src"))
+os.environ["CLASSPUSH_CLOUD"] = "1"
 
 from academic_calendar import week_number_for_date
 from grade_service import GradeService

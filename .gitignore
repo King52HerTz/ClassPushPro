@@ -46,6 +46,12 @@ secrets.yaml
 .ClassPush_HNIT/
 private/
 hnit_app_token.txt
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.env
+!cloud/.env.example
+website/downloads/
 
 # OS specific
 .DS_Store

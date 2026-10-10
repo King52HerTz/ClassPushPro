@@ -15,18 +15,8 @@ a = Analysis(
         (frontend_dist, 'frontend/dist'),
         # 包含图标文件 (放在根目录)
         (os.path.join(frontend_public, 'icon.ico'), '.'),
-        # 包含源代码 (用于运行时动态加载部分逻辑)
-        # 排除 action_runner.py (它是云端专用入口，不需要打包到桌面版)
-        # PyInstaller 本身会递归分析 imports，不需要手动把 src 放进去作为 data
-        # 如果确实需要把 py 文件当资源放进去，应该过滤掉 action_runner.py
-        # 但其实这里把 src 当 data 放进去是不推荐的做法，除非你有动态加载 py 文件的需求
-        # 为了保险起见，我们保留原有逻辑，但加上说明
-        ('RestoredSource/src', 'src'),
     ],
-    excludes=[
-        # 显式排除云端运行器，防止被意外打包进去 (虽然打包进去也没害处，只是占空间)
-        # 'action_runner', 
-    ],
+    excludes=['cloud'],
     hiddenimports=[
         'win32timezone',
         'engineio.async_drivers.threading',

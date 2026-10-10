@@ -1,3 +1,2 @@
-requests==2.31.0
+-r requirements-core.txt
 pywebview==5.1
-pycryptodome==3.20.0

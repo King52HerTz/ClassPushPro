@@ -14,18 +14,8 @@ export interface UpdateDownloadData {
 
 export interface AppConfig {
   username: string;
-  password: string;
-  uid: string;
-  app_token: string;
-  push_time: string;
-  auto_start: boolean;
-  weather_enabled?: boolean;
-  weather_city?: string;
-  grade_push_enabled?: boolean;
-  grade_check_interval_minutes?: number;
-  grade_check_start_time?: string;
-  grade_check_end_time?: string;
-  grade_push_initialized?: boolean;
+  has_password?: boolean;
+  password?: string;
   semester_start_date?: string;
   time_slots?: Record<string, [string, string]> | null;
   calendar_alarm_minutes?: number;
@@ -65,6 +55,7 @@ export interface PreviewCoursesData {
 }
 
 export interface CalendarExportData {
+  source?: 'online' | 'offline';
   file_path: string;
   file_name: string;
   course_count: number;

@@ -19,6 +19,8 @@ const CoursePreviewPage = lazy(() => import('./components/CoursePreviewPage'));
 const GradesPage = lazy(() => import('./components/GradesPage'));
 const SettingsPage = lazy(() => import('./components/SettingsPage'));
 const AboutPage = lazy(() => import('./components/AboutPage'));
+const CalendarPage = lazy(() => import('./components/CalendarPage'));
+const CloudPage = lazy(() => import('./components/CloudPage'));
 
 const App = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -39,8 +41,7 @@ const App = () => {
         res.status === 'success' &&
         res.data &&
         res.data.username &&
-        res.data.password &&
-        res.data.uid
+        res.data.has_password
       ) {
         setIsLoggedIn(true);
         setShowLoginModal(false);
@@ -112,12 +113,9 @@ const App = () => {
                 await api.saveConfig({
                     username: "",
                     password: "",
-                    uid: "",
-                    app_token: "",
-                    push_time: "07:00",
-                    auto_start: false
                 });
                 setIsLoggedIn(false);
+                setSelectedKey('dashboard');
                 setShowLoginModal(true);
                 // message.success("已退出登录"); // 移除提示，避免重复弹窗
             } catch (e) {
@@ -140,6 +138,10 @@ const App = () => {
         return <CoursePreviewPage />;
       case 'grades':
         return <GradesPage />;
+      case 'calendar':
+        return <CalendarPage />;
+      case 'cloud':
+        return <CloudPage />;
       case 'settings':
         // 传递 logout 处理函数给 SettingsPage
         return <SettingsPage onLogout={handleLogout} isLoggedIn={isLoggedIn} />;
@@ -168,6 +170,7 @@ const App = () => {
         visible={showLoginModal} 
         onSuccess={() => {
             setIsLoggedIn(true);
+            setSelectedKey('dashboard');
             setShowLoginModal(false);
             // 登录成功后刷新一下配置或状态
         }}
@@ -256,6 +259,8 @@ const App = () => {
               icon: <SettingOutlined />,
               label: '设置',
             },
+            { key: 'calendar', icon: <CalendarOutlined />, label: '日历导出' },
+            { key: 'cloud', icon: <InfoCircleOutlined />, label: '云端推送' },
             {
               key: 'about',
               icon: <InfoCircleOutlined />,
@@ -289,6 +294,8 @@ const App = () => {
             {selectedKey === 'dashboard' && '仪表盘'}
             {selectedKey === 'preview' && '课表预览'}
             {selectedKey === 'grades' && '成绩'}
+            {selectedKey === 'calendar' && '日历导出'}
+            {selectedKey === 'cloud' && '云端推送'}
             {selectedKey === 'settings' && '设置'}
             {selectedKey === 'about' && '关于'}
           </div>

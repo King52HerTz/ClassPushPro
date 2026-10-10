@@ -31,6 +31,7 @@ if %errorlevel% neq 0 (
 )
 
 echo [3/3] Starting Backend...
+set "CLASSPUSH_DEV=1"
 cd src
 python main.py
 

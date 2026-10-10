@@ -1,5 +1,5 @@
 #define MyAppName "ClassPush"
-#define MyAppVersion "2.1.5"
+#define MyAppVersion "3.0.0"
 #define MyAppPublisher "Eliauk"
 #define MyAppURL "https://classpush.eliauk312.top"
 #define MyAppExeName "ClassPush.exe"
@@ -44,6 +44,10 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 [Files]
 Source: "dist\ClassPush\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "dist\ClassPush\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+[InstallDelete]
+; Remove the old desktop-only token; push credentials now live on the server.
+Type: files; Name: "{app}\hnit_app_token.txt"
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

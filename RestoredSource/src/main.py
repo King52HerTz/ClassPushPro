@@ -1,10 +1,9 @@
 import os
 import sys
-import argparse
 import threading
 import time
+import mimetypes
 from api import Api
-from run_job import run_grade_check_task, run_push_task
 from logger import logger
 
 def _try_set_windows_icon(window_title: str, icon_path: str):
@@ -138,6 +137,8 @@ def get_entry_point():
     # 注意：这需要确保 frontend 已经通过 npm run dev 启动
     dev_url = "http://localhost:5173"
     try:
+        if getattr(sys, 'frozen', False) or os.getenv('CLASSPUSH_DEV') != '1':
+            raise RuntimeError('Production UI only')
         import socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         result = sock.connect_ex(('localhost', 5173))
@@ -194,52 +195,22 @@ def _open_log_file():
         logger.error(f"打开日志失败: {e}")
 
 if __name__ == '__main__':
-    # 1. 解析命令行参数
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--run-job", action="store_true", help="Run push task silently")
-    parser.add_argument("--create-schedule", type=str, help="Create schedule task with admin privileges")
-    parser.add_argument("--run-grade-job", action="store_true", help="Run grade check task silently")
-    parser.add_argument("--create-grade-schedule", nargs=3, metavar=("START", "INTERVAL", "END"), help="Create grade schedule task with admin privileges")
-    args = parser.parse_args()
-
-    # 2. 如果是运行任务模式
-    if args.run_job:
-        logger.info("Running push task in silent mode...")
-        run_push_task()
+    # Windows registry MIME overrides must not turn module scripts into text/plain.
+    mimetypes.init()
+    for suffix, content_type in (('.js', 'application/javascript'), ('.mjs', 'application/javascript'), ('.css', 'text/css')):
+        mimetypes.add_type(content_type, suffix, strict=True)
+        mimetypes.add_type(content_type, suffix, strict=False)
+    # Retired task commands must never silently enable cloud or local sending.
+    if any(arg.startswith(("--run-job", "--run-grade-job", "--create-schedule", "--create-grade-schedule")) for arg in sys.argv[1:]):
         sys.exit(0)
-
-    if args.run_grade_job:
-        logger.info("Running grade check task in silent mode...")
-        run_grade_check_task()
-        sys.exit(0)
-    
-    # 3. 如果是创建任务模式 (Admin)
-    if args.create_schedule:
-        from scheduler import create_schedule_task
-        logger.info(f"Creating schedule task for {args.create_schedule}...")
-        success, msg = create_schedule_task(args.create_schedule)
-        if success:
-            logger.info("Task created successfully.")
-            sys.exit(0)
-        else:
-            logger.error(f"Task creation failed: {msg}")
-            sys.exit(1)
-
-    if args.create_grade_schedule:
-        from scheduler import create_grade_schedule_task
-        start_time, interval_minutes, end_time = args.create_grade_schedule
-        logger.info(f"Creating grade schedule task: start={start_time}, interval={interval_minutes}, end={end_time}")
-        success, msg = create_grade_schedule_task(start_time, int(interval_minutes), end_time)
-        if success:
-            logger.info("Grade task created successfully.")
-            sys.exit(0)
-        else:
-            logger.error(f"Grade task creation failed: {msg}")
-            sys.exit(1)
-
-    # 4. 正常启动 GUI
+    from migration import retire_local_push
+    migration_warning = retire_local_push()
+    if migration_warning:
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(0, migration_warning, "旧版任务迁移提示", 0x30)
+    # 正常启动 GUI
     import webview
-    logger.info("=== Starting ClassPush GUI (Version: 2.1.5) ===")
+    logger.info("=== Starting ClassPush GUI (Version: 3.0.0) ===")
     api = Api()
     entry = get_entry_point()
     icon_path = get_icon_path()
@@ -291,15 +262,9 @@ if __name__ == '__main__':
         api.get_grade_semesters,
         api.get_grades,
         api.refresh_grades,
-        api.check_new_grades,
-        api.manual_grade_push,
-        api.save_grade_push_settings,
-        api.manual_push,
-        api.ignore_missed_push,
-        api.set_autostart,
-        api.get_system_status,
-        api.toggle_scheduler,
-        api.check_today_pushed
+        api.open_cloud_portal,
+        api.open_calendar_guide,
+        api.open_export_folder
     )
 
     if icon_path and sys.platform == 'win32':
