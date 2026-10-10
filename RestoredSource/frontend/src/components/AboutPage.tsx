@@ -126,7 +126,7 @@ const AboutPage: React.FC = () => {
                 </div>
 
                 <Paragraph style={{ maxWidth: 600, margin: '0 auto 24px', color: '#666' }}>
-                    湖南工学院的课表、成绩与日历工作空间。<br />
+                    湖南工学院的课表、成绩与日历学习空间。<br />
                     本地查询，日历随身；云端通知由 WxPusher 独立 App 接收，电脑不必常开。
                 </Paragraph>
 
