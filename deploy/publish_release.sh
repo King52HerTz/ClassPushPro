@@ -28,7 +28,14 @@ cp -a "$site" "$backup/website"
 cp -a "$current/cloud/app.py" "$backup/cloud-app.py"
 rollback() {
   trap - ERR
-  cp -a "$backup/website/." "$site/"
+  # Restore only published paths; BaoTa may make unrelated .user.ini immutable.
+  while IFS= read -r -d '' file; do
+    relative="${file#"$staging/website/"}"
+    if [ -f "$backup/website/$relative" ]; then
+      install -m 644 "$backup/website/$relative" "$site/$relative"
+    fi
+  done < <(find "$staging/website" -type f -print0)
+  install -m 644 "$backup/website/ClassPush_Setup.exe" "$site/ClassPush_Setup.exe"
   install -m 644 "$backup/cloud-app.py" "$current/cloud/app.py"
   systemctl restart classpush-cloud-api
   printf 'Publish failed; previous website, manifest, installer and API restored from %s\n' "$backup"
