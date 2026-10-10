@@ -30,6 +30,7 @@ class SchoolGate:
         return max(900, seconds)
 
     def perform(self, operation):
+        queued_at = time.monotonic()
         try:
             with self.store.lock("school-http", timeout=self.QUEUE_TIMEOUT):
                 with self.store.db() as db:
@@ -38,7 +39,7 @@ class SchoolGate:
                     remaining = math.ceil(state["cooldown_until"] - self.clock())
                     raise ServiceError("教务请求保护暂停中，请稍后再试", "deferred", remaining)
                 wait = max(0, state["next_request"] - self.clock())
-                if wait > self.QUEUE_TIMEOUT:
+                if wait > max(0, self.QUEUE_TIMEOUT - (time.monotonic() - queued_at)):
                     raise ServiceError("教务查询队列繁忙，请稍后再试", "deferred", math.ceil(wait))
                 self.sleep(wait)
                 with self.store.db() as db:
