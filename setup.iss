@@ -21,6 +21,9 @@ DefaultDirName={localappdata}\Programs\{#MyAppName}
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 DisableDirPage=no
+DisableWelcomePage=no
+DisableReadyPage=no
+AlwaysShowDirOnReadyPage=yes
 PrivilegesRequired=lowest
 ArchitecturesInstallIn64BitMode=x64
 CloseApplications=force
@@ -42,7 +45,7 @@ CreateDesktopIcon=创建桌面快捷方式(&D)
 LaunchProgram=启动 ClassPush
 AdditionalIcons=附加图标：
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
 Source: "{#MyAppSourceDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
