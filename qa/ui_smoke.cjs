@@ -133,7 +133,7 @@ async function main() {
   await site.goto(base + '/download.html');
   await site.getByRole('link', { name: '下载桌面版 v3.0.1' }).waitFor();
   assert.equal(await site.locator('#desktop-download').getAttribute('href'), 'https://classpush.eliauk312.top/downloads/ClassPush_Setup_3.0.1.exe');
-  assert.equal(await site.locator('.changelog-list li').count(), 6);
+  assert.equal(await site.locator('.changelog-list li').count(), 5);
   for (const url of ['index.html', 'cloud.html', 'calendar.html', 'download.html', 'faq.html', 'privacy.html']) {
     await site.goto(base + '/' + url);
     assert.equal(await site.locator('.nav-links a').count(), 6);

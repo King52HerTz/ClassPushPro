@@ -12,7 +12,9 @@ async function main() {
   assert.equal(release.available, true);
   assert.equal(release.lanzou_url, release.download_url); // legacy clients
   assert.equal(typeof release.changelog, 'string');
-  assert.ok(release.changelog.includes('中文安装'));
+  for (const feature of ['云端课表提醒', '成绩变化通知', '独立日历导出', '桌面学习空间', 'WxPusher独立App']) {
+    assert.ok(release.changelog.includes(feature), `Major feature missing: ${feature}`);
+  }
   assert.equal(new URL(release.download_url).hostname, 'classpush.eliauk312.top');
   const installer = fs.readFileSync(path.resolve(__dirname, '../private/packages/ClassPush_Setup_3.0.1.exe'));
   assert.equal(installer.length, release.size_bytes);
