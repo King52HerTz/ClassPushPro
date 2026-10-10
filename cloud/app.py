@@ -24,7 +24,7 @@ def create_app(store=None, school=None, sender=None, clock=time.time, origin=Non
     if store is None:
         store = Store(os.environ.get("CLOUD_DATA_DIR", "/var/lib/classpush"),
                       base64.b64decode(os.environ["CLOUD_DATA_KEY"], validate=True))
-    school = school or SchoolService()
+    school = school or SchoolService(store)
     sender = sender or WxSender(os.environ.get("WXPUSHER_APP_TOKEN"))
     app.extensions.update(cloud_store=store, cloud_school=school, cloud_sender=sender)
 
@@ -45,7 +45,10 @@ def create_app(store=None, school=None, sender=None, clock=time.time, origin=Non
 
     @app.errorhandler(ServiceError)
     def service_error(exc):
-        return fail(str(exc), 502)
+        response, status = fail(str(exc), 503 if exc.status == "deferred" else 502)
+        if exc.retry_after:
+            response.headers["Retry-After"] = str(exc.retry_after)
+        return response, status
 
     @app.errorhandler(Exception)
     def unexpected(exc):
@@ -87,7 +90,7 @@ def create_app(store=None, school=None, sender=None, clock=time.time, origin=Non
     def health():
         with store.db() as db:
             db.execute("SELECT 1")
-        return jsonify(status="ok", version="3.0.0")
+        return jsonify(status="ok", version="3.0.1")
 
     @app.post(PREFIX + "/auth/request")
     def request_code():
@@ -177,9 +180,10 @@ def create_app(store=None, school=None, sender=None, clock=time.time, origin=Non
         with store.db() as db:
             jobs = db.execute("SELECT kind,status,message,created FROM jobs WHERE account=? ORDER BY created DESC LIMIT 20",
                               (account["id"],)).fetchall()
+            cooldown = db.execute("SELECT cooldown_until FROM school_outbound WHERE id=1").fetchone()[0]
         result = {key: bool(account[key]) for key in ("morning", "evening", "grades", "paused", "needs_auth")}
         result.update(username=account["state"]["username"], uid=masked(account["state"]["uid"]),
-                      notice=account["notice"], jobs=[dict(row) for row in jobs])
+                      notice=account["notice"], jobs=[dict(row) for row in jobs], school_cooldown_until=cooldown)
         return jsonify(result)
 
     @app.patch(PREFIX + "/account")

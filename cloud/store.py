@@ -5,6 +5,8 @@ import json
 import os
 import sqlite3
 import threading
+import time
+import errno
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -43,10 +45,17 @@ class Store:
                     account TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
                     slot TEXT NOT NULL, kind TEXT NOT NULL, status TEXT NOT NULL,
                     message TEXT NOT NULL DEFAULT '', created REAL NOT NULL,
+                    retry_at REAL NOT NULL DEFAULT 0,
                     PRIMARY KEY(account, slot, kind));
                 CREATE TABLE IF NOT EXISTS limits (
                     key TEXT PRIMARY KEY, start REAL NOT NULL, count INTEGER NOT NULL);
+                CREATE TABLE IF NOT EXISTS school_outbound (
+                    id INTEGER PRIMARY KEY CHECK(id=1), next_request REAL NOT NULL DEFAULT 0,
+                    cooldown_until REAL NOT NULL DEFAULT 0, failures INTEGER NOT NULL DEFAULT 0);
+                INSERT OR IGNORE INTO school_outbound(id) VALUES(1);
             """)
+            if "retry_at" not in {row[1] for row in db.execute("PRAGMA table_info(jobs)")}:
+                db.execute("ALTER TABLE jobs ADD COLUMN retry_at REAL NOT NULL DEFAULT 0")
         if os.name != "nt":
             os.chmod(self.directory, 0o700)
             os.chmod(self.path, 0o600)
@@ -78,12 +87,16 @@ class Store:
         return json.loads(cipher.decrypt_and_verify(blob[32:], blob[16:32]))
 
     @contextmanager
-    def lock(self, subject):
+    def lock(self, subject, timeout=None):
         # Hash filenames even for internal callers; never include a student id.
         name = self.digest(subject)
         with self._guard:
             thread_lock = self._locks.setdefault(name, threading.RLock())
-        with thread_lock:
+        deadline = time.monotonic() + timeout if timeout is not None else None
+        acquired = thread_lock.acquire() if timeout is None else thread_lock.acquire(timeout=timeout)
+        if not acquired:
+            raise TimeoutError("Lock queue timeout")
+        try:
             with open(self.directory / (name + ".lock"), "a+b") as handle:
                 if os.name == "nt":
                     import msvcrt
@@ -91,10 +104,21 @@ class Store:
                     handle.write(b"0")
                     handle.flush()
                     handle.seek(0)
-                    msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
                 else:
                     import fcntl
-                    fcntl.flock(handle, fcntl.LOCK_EX)
+                while True:
+                    try:
+                        if os.name == "nt":
+                            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                        else:
+                            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        break
+                    except OSError as exc:
+                        if exc.errno not in (errno.EACCES, errno.EAGAIN, errno.EDEADLK):
+                            raise
+                        if deadline is not None and time.monotonic() >= deadline:
+                            raise TimeoutError("Lock queue timeout") from None
+                        time.sleep(0.05)
                 try:
                     yield
                 finally:
@@ -103,6 +127,8 @@ class Store:
                         msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
                     else:
                         fcntl.flock(handle, fcntl.LOCK_UN)
+        finally:
+            thread_lock.release()
 
     def account(self, account_id=None, subject=None):
         with self.db() as db:

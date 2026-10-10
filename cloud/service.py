@@ -1,10 +1,12 @@
 import sys
 import copy
 import os
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
+from .outbound import ServiceError, SchoolGate, SchoolSession
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "RestoredSource" / "src"))
 os.environ["CLASSPUSH_CLOUD"] = "1"
@@ -19,12 +21,6 @@ from logger import logger as school_logger
 school_logger.disabled = True
 
 BEIJING = timezone(timedelta(hours=8))
-
-
-class ServiceError(Exception):
-    def __init__(self, message, status="failed"):
-        super().__init__(message)
-        self.status = status
 
 
 class StateConfig:
@@ -80,6 +76,7 @@ class CloudGrades(GradeService):
         semesters = scraper.get_semester_list()
         selected = self._resolve_selected_semester(None, term, semesters)
         latest = scraper.get_term_grades(selected["semester_id"], selected["semester_name"])
+        self.login.session.check()
         old = self.load_grade_cache()
         cache = copy.deepcopy(old)
         cache.update(current_term=term, semester_list=semesters, last_check_time=self._now_str())
@@ -95,7 +92,7 @@ class CloudGrades(GradeService):
                 self._push_grade_changes(changes["new_items"], changes["updated_items"])
             except ServiceError as exc:
                 if exc.status == "unknown":
-                    # Avoid resending the same changes on the next hourly check.
+                    # Avoid resending the same changes on the next check.
                     self.save_grade_cache(cache)
                 raise
             message = "成绩通知已提交 WxPusher"
@@ -106,37 +103,53 @@ class CloudGrades(GradeService):
 
 
 class SchoolService:
+    CACHE_SECONDS = 18 * 3600
+
+    def __init__(self, store, clock=time.time):
+        self.gate = SchoolGate(store, clock=clock)
+        self.clock = clock
+
     def login(self, state, fresh=False):
         manager = LoginManager(StateConfig(state))
+        manager.session.close()
+        manager.session = SchoolSession(self.gate)
         success, message = manager.login(state["username"], state["password"], use_cache=not fresh)
+        try:
+            manager.session.check()
+        except ServiceError:
+            manager.session.close()
+            raise
         if not success:
+            manager.session.close()
             # Do not propagate URLs, tokens, or arbitrary remote exception text.
-            if "账号或密码错误" in message:
-                raise ServiceError("教务账号或密码已失效，请重新登录", "needs_auth")
+            if "账号或密码错误" in message or "验证码" in message:
+                raise ServiceError("教务账号、密码或验证码需要人工确认，请重新授权", "needs_auth")
             raise ServiceError("暂时无法登录教务系统，请稍后重试")
         return manager
 
     def verify(self, state):
-        self.login(state, fresh=True)
+        self.login(state, fresh=True).session.close()
 
     def run(self, account, kind, target, sender):
         state = account["state"]
-        login = self.login(state)
         if kind == "grades":
-            return CloudGrades(state, login, sender).check_changes()
-        scraper = CourseScraper(login.token, session=login.session)
-        info = scraper.fetch_semester_info()
-        teaching = scraper.fetch_teaching_state(info, observed_date=datetime.now(BEIJING).date())
+            login = self.login(state)
+            try:
+                result = CloudGrades(state, login, sender).check_changes()
+                login.session.check()
+                return result
+            finally:
+                login.session.close()
+        if kind.startswith("prepare_"):
+            return self.prepare(state)
+        cache = self.valid_cache(state)
+        if cache is None:
+            raise ServiceError("本批次课表未完成预取或数据已过期，未临时集中查询教务", "skipped")
+        teaching, courses = cache["teaching"], cache["courses"]
         if teaching.get("schedule_status") != "active":
             return "非教学期或学期日期待确认，本批次未发送课表"
-        semester = teaching.get("semester_id")
-        if not semester or not teaching.get("week_one_monday"):
-            raise ServiceError("学校未提供可确认的学期日期，未发送课表")
-        courses = scraper.fetch_course_data(semester_id=semester)
         if not courses:
             return "当前学期课表尚未公布，本批次未发送"
-        # Do not fall back to another semester's snapshot on fetch failure.
-        state["course_cache"] = {"semester_id": semester, "courses": courses, "teaching": teaching}
         week = week_number_for_date(teaching["week_one_monday"], target)
         available = teaching.get("available_weeks") or []
         if week is None or (available and week > max(available)):
@@ -145,8 +158,50 @@ class SchoolService:
         selected = filter_courses(courses, datetime.combine(target, datetime.min.time()), week)
         content, title = generate_push_content(selected, target.strftime("%m月%d日"),
                                                "星期" + "一二三四五六日"[target.weekday()])
+        updated = datetime.fromtimestamp(cache["fetched_at"], BEIJING).strftime("%m-%d %H:%M")
+        content += f'<p style="font-size:12px;color:#667085">课表数据时间：{updated}（北京时间）。快照不自动同步即时调课。</p>'
         sender(content, title)
-        return "课表通知已提交 WxPusher"
+        return "课表通知已提交 WxPusher；数据时间 " + updated
+
+    def valid_cache(self, state):
+        cache = state.get("course_cache") or {}
+        if (cache.get("username") != state["username"] or not cache.get("semester_id")
+                or not 0 <= self.clock() - cache.get("fetched_at", 0) < self.CACHE_SECONDS):
+            return None
+        teaching = cache.get("teaching", {})
+        if teaching.get("semester_id") != cache["semester_id"]:
+            return None
+        if teaching.get("schedule_status") == "active" and not teaching.get("week_one_monday"):
+            return None
+        return cache
+
+    def prepare(self, state):
+        if self.valid_cache(state) is not None:
+            return "已复用本账号有效课表快照，无需请求教务"
+        login = self.login(state)
+        try:
+            return self.fetch_snapshot(state, login)
+        finally:
+            login.session.close()
+
+    def fetch_snapshot(self, state, login):
+        scraper = CourseScraper(login.token, session=login.session)
+        info = scraper.fetch_semester_info()
+        login.session.check()
+        if not info:
+            raise ServiceError("无法确认当前学期，本次未更新课表快照")
+        teaching = scraper.fetch_teaching_state(info, observed_date=datetime.fromtimestamp(self.clock(), BEIJING).date())
+        login.session.check()
+        semester = teaching.get("semester_id")
+        if not semester or (teaching.get("schedule_status") == "active" and not teaching.get("week_one_monday")):
+            raise ServiceError("学校未提供可确认的学期信息，未更新课表快照")
+        courses = scraper.fetch_course_data(semester_id=semester) if teaching.get("schedule_status") == "active" else []
+        login.session.check()
+        if courses is None:
+            raise ServiceError("课表获取失败，本次未更新快照")
+        state["course_cache"] = {"username": state["username"], "semester_id": semester,
+                                 "courses": courses, "teaching": teaching, "fetched_at": self.clock()}
+        return "本账号课表已预取，等待对应推送时段"
 
 
 class WxSender:
