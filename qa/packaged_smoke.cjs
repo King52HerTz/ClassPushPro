@@ -4,7 +4,9 @@ const { spawn, execFileSync } = require('node:child_process');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || '../private/qa-tools/node_modules/playwright');
-const exe = path.resolve(__dirname, '../private/dist-3.0.0/ClassPush/ClassPush.exe');
+const exe = process.env.CLASSPUSH_CANDIDATE_EXE
+  ? path.resolve(process.env.CLASSPUSH_CANDIDATE_EXE)
+  : path.resolve(__dirname, '../private/dist-3.0.0/ClassPush/ClassPush.exe');
 const port = 19393;
 const child = spawn(exe, [], {
   cwd: path.dirname(exe), windowsHide: true,
@@ -26,6 +28,11 @@ async function main() {
     const page = browser.contexts()[0].pages()[0];
     await page.getByRole('menuitem', { name: '云端推送' }).waitFor({ timeout: 20000 });
     await page.getByRole('menuitem', { name: '日历导出' }).waitFor();
+    const centered = await page.locator('.sidebar-toggle').evaluate(button => {
+      const toggle = button.getBoundingClientRect(), sidebar = button.closest('.workspace-sidebar').getBoundingClientRect();
+      return Math.abs(toggle.x + toggle.width / 2 - sidebar.x - sidebar.width / 2) < 1;
+    });
+    assert.equal(centered, true, 'packaged sidebar toggle is centered');
     assert.equal(await page.evaluate(() => typeof window.pywebview.api.get_config), 'function');
     const response = await page.request.get(page.url());
     assert.equal(response.status(), 200);
