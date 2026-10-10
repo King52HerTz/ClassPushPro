@@ -90,7 +90,7 @@ def create_app(store=None, school=None, sender=None, clock=time.time, origin=Non
     def health():
         with store.db() as db:
             db.execute("SELECT 1")
-        return jsonify(status="ok", version="3.0.1")
+        return jsonify(status="ok", version="3.0.2")
 
     @app.post(PREFIX + "/auth/request")
     def request_code():

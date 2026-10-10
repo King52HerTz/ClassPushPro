@@ -8,20 +8,20 @@ site=/www/wwwroot/classpush.eliauk312.top
 current=/opt/classpush-cloud/current
 previous="$(realpath "$current")"
 case "$previous" in /opt/classpush-cloud/releases/*) ;; *) exit 1 ;; esac
-release=/opt/classpush-cloud/releases/3.0.1-protection
+release=/opt/classpush-cloud/releases/3.0.2-protection
 python=/opt/classpush-cloud/venv/bin/python
-package="$staging/ClassPush_Setup_3.0.1.exe"
+package="$staging/ClassPush_Setup_3.0.2.exe"
 database=/var/lib/classpush-cloud/cloud.sqlite3
 test ! -e "$release"
 "$python" - "$staging/website/version.json" "$package" <<'PY'
 import hashlib, json, pathlib, sys
 manifest = json.loads(pathlib.Path(sys.argv[1]).read_text())
 data = pathlib.Path(sys.argv[2]).read_bytes()
-assert manifest['version'] == '3.0.1' and manifest['available'] is True
+assert manifest['version'] == '3.0.2' and manifest['available'] is True
 assert len(data) == manifest['size_bytes']
 assert hashlib.sha256(data).hexdigest() == manifest['sha256']
 assert data.startswith(b'MZ')
-assert manifest['download_url'] == 'https://classpush.eliauk312.top/downloads/ClassPush_Setup_3.0.1.exe'
+assert manifest['download_url'] == 'https://classpush.eliauk312.top/downloads/ClassPush_Setup_3.0.2.exe'
 assert manifest['lanzou_url'] == manifest['download_url']
 PY
 (cd "$staging" && "$python" -m unittest discover -s cloud/tests -q)
@@ -66,8 +66,8 @@ rows = db.execute('SELECT id,morning,evening,grades,paused,needs_auth FROM accou
 db.close()
 PY
 install -d -m 755 "$site/downloads"
-install -m 644 "$package" "$site/downloads/.ClassPush_Setup_3.0.1.exe.new"
-mv -f "$site/downloads/.ClassPush_Setup_3.0.1.exe.new" "$site/downloads/ClassPush_Setup_3.0.1.exe"
+install -m 644 "$package" "$site/downloads/.ClassPush_Setup_3.0.2.exe.new"
+mv -f "$site/downloads/.ClassPush_Setup_3.0.2.exe.new" "$site/downloads/ClassPush_Setup_3.0.2.exe"
 install -m 644 "$package" "$site/.ClassPush_Setup.exe.new"
 mv -f "$site/.ClassPush_Setup.exe.new" "$site/ClassPush_Setup.exe"
 while IFS= read -r -d '' file; do
@@ -102,4 +102,4 @@ systemctl is-active --quiet classpush-cloud-api classpush-cloud-worker
 install -m 644 "$staging/website/version.json" "$site/.version.json.new"
 mv -f "$site/.version.json.new" "$site/version.json"
 trap - ERR
-printf 'Release 3.0.1 published. Backup: %s\n' "$backup"
+printf 'Release 3.0.2 published. Backup: %s\n' "$backup"

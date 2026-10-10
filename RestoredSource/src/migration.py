@@ -22,7 +22,9 @@ def is_hnit_legacy_task(task):
 
 def missing_task(exc):
     # A missing task/folder is normal; access denial must produce a warning.
-    return isinstance(exc, (FileNotFoundError, KeyError)) or getattr(exc, "hresult", None) in (-2147024894, -2147024893)
+    info = getattr(exc, "excepinfo", None)
+    code = info[-1] if info else getattr(exc, "hresult", None)
+    return isinstance(exc, (FileNotFoundError, KeyError)) or code in (-2147024894, -2147024893)
 
 
 def retire_local_push():

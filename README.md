@@ -1,6 +1,6 @@
 # ClassPush · 湖南工学院
 
-本地查课、手机日历、云端App 提醒。3.0.1 已发布：桌面保留本校查询与日历导出，云端负责定时提醒，电脑不必常开。
+本地查课、手机日历、云端App 提醒。3.0.2 已发布：桌面保留本校查询与日历导出，云端负责定时提醒，电脑不必常开。
 
 [官网](https://classpush.eliauk312.top) · [云端管理](https://classpush.eliauk312.top/cloud.html) · [下载中心](https://classpush.eliauk312.top/download.html)
 

@@ -48,6 +48,15 @@ class MigrationTest(unittest.TestCase):
         with patch.dict(sys.modules, {'win32com.client.dynamic': dynamic}), patch('migration.sys.platform', 'win32'):
             self.assertIn('管理员', retire_local_push())
 
+    def test_real_com_wrapper_distinguishes_missing_from_access_denied(self):
+        from migration import missing_task
+        error = OSError('FAKE_PRIVATE_DETAIL')
+        error.hresult = -2147352567
+        error.excepinfo = (0, None, None, None, 0, -2147024894)
+        self.assertTrue(missing_task(error))
+        error.excepinfo = (0, None, None, None, 0, -2147024891)
+        self.assertFalse(missing_task(error))
+
     def test_generic_target_identification_does_not_execute_old_code(self):
         import tempfile
         from migration import is_hnit_legacy_task

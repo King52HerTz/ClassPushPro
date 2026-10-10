@@ -10,7 +10,7 @@ async function main() {
   assert.equal(redirect.headers.get('location'), origin + '/cloud.html');
   const health = await fetch(origin + '/api/cloud/health');
   assert.equal(health.status, 200);
-  assert.equal((await health.json()).version, '3.0.1');
+  assert.equal((await health.json()).version, '3.0.2');
   const account = await fetch(origin + '/api/cloud/account');
   assert.equal(account.status, 401);
   const crossOrigin = await fetch(origin + '/api/cloud/auth/request', {
@@ -36,11 +36,11 @@ async function main() {
     await page.getByRole('button', { name: '打开导航', exact: true }).click();
     await page.locator('.nav-links').getByRole('link', { name: '首页', exact: true }).click();
     assert.ok(new URL(page.url()).searchParams.get('v'));
-    await page.getByText('v3.0.1 · 正式发布 · 云端提醒与日历导出', { exact: true }).waitFor();
+    await page.getByText('v3.0.2 · 正式发布 · 云端提醒与日历导出', { exact: true }).waitFor();
     await page.getByRole('button', { name: '打开导航', exact: true }).click();
     await page.locator('.nav-links').getByRole('link', { name: '下载中心', exact: true }).click();
     assert.ok(new URL(page.url()).searchParams.get('v'));
-    await page.getByRole('link', { name: '下载桌面版 v3.0.1' }).waitFor();
+    await page.getByRole('link', { name: '下载桌面版 v3.0.2' }).waitFor();
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
   console.log('Live anonymous checks passed: HTTPS/API protection, HTML cache policy, mobile cloud -> homepage -> v3 download navigation. No real business operations.');

@@ -128,11 +128,11 @@ async function main() {
   const site = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   site.on('pageerror', error => errors.push(error.message));
   await site.goto(base + '/index.html');
-  await site.getByText('v3.0.1 · 正式发布 · 云端提醒与日历导出').waitFor();
+  await site.getByText('v3.0.2 · 正式发布 · 云端提醒与日历导出').waitFor();
   await site.screenshot({ path: path.join(output, 'website-home.png'), fullPage: true });
   await site.goto(base + '/download.html');
-  await site.getByRole('link', { name: '下载桌面版 v3.0.1' }).waitFor();
-  assert.equal(await site.locator('#desktop-download').getAttribute('href'), 'https://classpush.eliauk312.top/downloads/ClassPush_Setup_3.0.1.exe');
+  await site.getByRole('link', { name: '下载桌面版 v3.0.2' }).waitFor();
+  assert.equal(await site.locator('#desktop-download').getAttribute('href'), 'https://classpush.eliauk312.top/downloads/ClassPush_Setup_3.0.2.exe');
   assert.equal(await site.locator('.changelog-list li').count(), 5);
   for (const url of ['index.html', 'cloud.html', 'calendar.html', 'download.html', 'faq.html', 'privacy.html']) {
     await site.goto(base + '/' + url);
