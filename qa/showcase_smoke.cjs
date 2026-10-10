@@ -68,6 +68,7 @@ async function main() {
       const canvas = document.querySelector('.egg-fireworks');
       return canvas && canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data.some((v, i) => i % 4 === 3 && v > 0);
     });
+    await page.waitForTimeout(900);
     await dialog.screenshot({ path: path.join(output, 'developer-easter-egg.png') });
     await page.evaluate(() => { window.__opened = []; window.open = url => { window.__opened.push(url); return null; }; });
     await dialog.getByRole('button', { name: '去博客串个门' }).click();
@@ -78,10 +79,28 @@ async function main() {
     assert.equal(await lit(), false, 'fireworks must stop and clear');
     await page.keyboard.press('Escape');
     await dialog.waitFor({ state: 'hidden' });
+    await page.getByRole('button', { name: '打开开发者彩蛋' }).click();
+    await dialog.waitFor();
+    await page.waitForTimeout(500);
+    assert.equal(await lit(), true, 'reopening starts a fresh animation');
+    await page.keyboard.press('Escape');
+    await dialog.waitFor({ state: 'hidden' });
+    assert.equal(await lit(), false, 'closing cancels an active animation');
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.getByRole('button', { name: '打开开发者彩蛋' }).click();
     await dialog.waitFor();
     assert.equal(await lit(), false, 'reduced motion must skip fireworks');
+    await dialog.locator('.ant-modal-close').click();
+    await dialog.waitFor({ state: 'hidden' });
+
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.locator('.workspace-header').getByRole('button', { name: '展开导航', exact: true }).click();
+    await page.getByRole('button', { name: '打开开发者彩蛋' }).click();
+    await dialog.waitFor();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'small-screen egg overflow');
+    await dialog.screenshot({ path: path.join(output, 'developer-easter-egg-mobile.png') });
+    await dialog.evaluate(node => { node.style.fontSize = '32px'; });
+    assert.equal(await dialog.evaluate(node => node.scrollWidth <= node.clientWidth), true, 'large text egg overflow');
     await page.keyboard.press('Escape');
 
     for (const size of [{ width: 375, height: 812 }, { width: 812, height: 375 }]) {

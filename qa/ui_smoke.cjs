@@ -41,6 +41,8 @@ async function main() {
     await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(result) });
   });
   await page.goto(base + '/cloud.html');
+  assert.equal(await page.getByText('工作空间', { exact: false }).count(), 0);
+  await page.getByText('你的云端学习空间', { exact: true }).waitFor();
   await page.locator('#login-panel:not([hidden])').waitFor();
   await page.screenshot({ path: path.join(output, 'cloud-login-mobile.png'), fullPage: true });
   assert.equal(await page.getByText('微信', { exact: false }).count(), 0);
@@ -74,7 +76,7 @@ async function main() {
     const config = { username: '20260001', has_password: true, calendar_alarm_minutes: 15, time_slots: { '1-2': ['08:30', '10:05'], '3-4': ['10:25', '12:00'] } };
     window.pywebview = { api: {
       get_config: () => result(config), get_preview_courses: () => result(preview),
-      save_config: () => result(null),
+      save_config: data => { window.__savedCalendarConfig = data; return result(null); },
       export_calendar_ics: () => result({ file_path: 'TEST_DOWNLOAD/classpush.ics', course_count: 3 }),
       get_grade_semesters: () => result({ current_term: { semester_id: '2026-2027-1', semester_name: '2026-2027-1' }, selected_semester: { semester_id: '2026-2027-1', semester_name: '2026-2027-1' }, semester_list: [{ semester_id: '2026-2027-1', semester_name: '2026-2027-1' }], grades: [] }),
       open_cloud_portal: () => result(null), open_calendar_guide: () => result(null),
@@ -84,15 +86,30 @@ async function main() {
   await desktop.getByText('校园安排，一处就绪。').waitFor();
   assert.equal(await desktop.getByRole('menuitem', { name: '设置', exact: true }).count(), 0);
   await desktop.getByRole('menuitem', { name: '控制台', exact: true }).waitFor();
+  assert.equal(await desktop.locator('.sidebar-version').count(), 0);
+  assert.equal(await desktop.getByText('把校园安排，带在身边。', { exact: true }).count(), 0);
   await desktop.screenshot({ path: path.join(output, 'desktop-console.png'), fullPage: true });
   await desktop.getByRole('button', { name: '管理本机账号' }).click();
   await desktop.getByText('切换本机账号', { exact: true }).waitFor();
   await desktop.keyboard.press('Escape');
   await desktop.getByRole('menuitem', { name: '日历导出' }).click();
   await desktop.getByText('2026-08-31', { exact: true }).waitFor();
+  const slotToggle = desktop.getByRole('button', { name: '本校课时设置（一般无需修改）' });
+  assert.equal(await slotToggle.getAttribute('aria-expanded'), 'false');
+  assert.equal(await desktop.getByRole('textbox', { name: '第1-2节开始时间' }).isVisible(), false);
   await desktop.getByRole('button', { name: '导出 ICS 文件' }).click();
   await desktop.getByText('TEST_DOWNLOAD/classpush.ics').waitFor();
+  assert.deepEqual(await desktop.evaluate(() => window.__savedCalendarConfig.time_slots), { '1-2': ['08:30', '10:05'], '3-4': ['10:25', '12:00'] });
   await desktop.screenshot({ path: path.join(output, 'desktop-calendar.png'), fullPage: true });
+  await slotToggle.click();
+  await desktop.getByRole('textbox', { name: '第1-2节开始时间' }).fill('08:35');
+  await desktop.screenshot({ path: path.join(output, 'desktop-calendar-expanded.png'), fullPage: true });
+  await slotToggle.click();
+  await desktop.getByRole('button', { name: '导出 ICS 文件' }).click();
+  await desktop.waitForFunction(() => window.__savedCalendarConfig.time_slots['1-2'][0] === '08:35');
+  await desktop.getByRole('menuitem', { name: '关于 ClassPush' }).click();
+  await desktop.getByText('湖南工学院的课表、成绩与日历学习空间。', { exact: false }).waitFor();
+  assert.equal(await desktop.getByText('工作空间', { exact: false }).count(), 0);
   await desktop.getByRole('menuitem', { name: '课表预览' }).click();
   await desktop.getByText('测试课程（合成数据）', { exact: true }).first().waitFor();
   await desktop.getByRole('menuitem', { name: '云端推送' }).click();

@@ -5,8 +5,9 @@ import { GITHUB_REPO_URL } from '../constants';
 
 export default function DeveloperEgg({ open, onClose }: { open: boolean; onClose: () => void }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   useEffect(() => {
-    if (!open || !canvas.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!open || !canvas.current || reducedMotion) return;
     const element = canvas.current;
     const context = element.getContext('2d');
     if (!context) return;
@@ -63,9 +64,9 @@ export default function DeveloperEgg({ open, onClose }: { open: boolean; onClose
     };
     frame = requestAnimationFrame(draw);
     return () => { cancelAnimationFrame(frame); context.clearRect(0, 0, width, height); };
-  }, [open]);
+  }, [open, reducedMotion]);
 
-  return <Modal open={open} onCancel={onClose} forceRender centered title="开发者的秘密基地" footer={null} width={560} styles={{ body: { maxHeight: 'calc(100dvh - 160px)', overflowY: 'auto' } }}>
+  return <Modal open={open} onCancel={onClose} forceRender centered title="开发者的秘密基地" footer={null} width={560} transitionName={reducedMotion ? '' : undefined} maskTransitionName={reducedMotion ? '' : undefined} styles={{ body: { maxHeight: 'calc(100dvh - 160px)', overflowY: 'auto' } }}>
     <div className="developer-egg">
       <div className="egg-sky" aria-hidden="true">
         <canvas ref={canvas} className="egg-fireworks" />
