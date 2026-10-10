@@ -10,6 +10,6 @@ export default function CloudPage() {
       <Button type="primary" size="large" icon={<GlobalOutlined />} onClick={() => api.openCloudPortal()}>打开官网云端管理</Button>
     </Card>
     <Alert type="info" showIcon message="本地登录不等于云端托管" description="云端管理会单独征求同意，并通过 WxPusher App 中的验证码验证。请先安装接收端、完成本校应用订阅并开启通知权限。不会自动上传本机密码。" />
-    <Alert type="warning" showIcon message="旧版本地定时推送已退役" description="新版不再创建电脑定时任务。首次启动会停用本校旧任务；若出现迁移失败提示，请按提示处理后再开启云端推送，避免旧版重复发送。" />
+    <Alert type="warning" showIcon message="旧版本地定时推送已退役" description="新版不再创建电脑定时任务。启动时仅停用已确认属于本校的旧任务，不删除记录；如果旧任务需要管理员权限或无法确认学校，会提示你在任务计划程序中检查。开启云端前请先完成处理，避免旧版重复发送。" />
   </Space>;
 }

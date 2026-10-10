@@ -212,7 +212,7 @@ if __name__ == '__main__':
                          args=(0, migration_warning, "旧版任务迁移提示", 0x30), daemon=True).start()
     # 正常启动 GUI
     import webview
-    logger.info("=== Starting ClassPush GUI (Version: 3.0.0) ===")
+    logger.info("=== Starting ClassPush GUI (Version: 3.0.1) ===")
     api = Api()
     entry = get_entry_point()
     icon_path = get_icon_path()
