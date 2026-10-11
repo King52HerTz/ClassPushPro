@@ -222,6 +222,16 @@ class SnapshotTest(unittest.TestCase):
         self.assertEqual(error.exception.status, "skipped")
         self.assertEqual(send.call_count, 1)
 
+    def test_actual_scheduled_payload_uses_original_template(self):
+        self.service.login = Mock(side_effect=AssertionError("Must use snapshot"))
+        for kind, day in [('morning', '今天'), ('evening', '明天')]:
+            send = Mock()
+            self.service.run({'state': self.state}, kind, datetime(2026, 10, 12).date(), send)
+            content, title = send.call_args.args
+            self.assertEqual(title, f'小主，{day}有 1 节课，记得按时上课哟 🍬')
+            for text in ['#ff7875', '#0984e3', '08:30-10:05', '数据时间']:
+                self.assertIn(text, content)
+
     @patch("cloud.service.CourseScraper")
     def test_prefetch_records_identity_and_time_without_sending(self, scraper_class):
         scraper = scraper_class.return_value

@@ -157,7 +157,8 @@ class SchoolService:
         from push_content import filter_courses, generate_push_content
         selected = filter_courses(courses, datetime.combine(target, datetime.min.time()), week)
         content, title = generate_push_content(selected, target.strftime("%m月%d日"),
-                                               "星期" + "一二三四五六日"[target.weekday()])
+                                               "星期" + "一二三四五六日"[target.weekday()],
+                                               day_label="明天" if kind == "evening" else "今天")
         updated = datetime.fromtimestamp(cache["fetched_at"], BEIJING).strftime("%m-%d %H:%M")
         content += f'<p style="font-size:12px;color:#667085">课表数据时间：{updated}（北京时间）。快照不自动同步即时调课。</p>'
         sender(content, title)
