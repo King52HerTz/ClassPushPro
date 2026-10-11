@@ -52,7 +52,7 @@
 .cloud-workspace summary::before { content:"+"; margin-right:10px; font-size:17px; font-weight:400; }
 .cloud-workspace details[open] > summary::before { content:"−"; }
 .cloud-workspace details p { color:#60758f; font-size:12px; margin:10px 0; }
-.qr { display:block; max-width:210px; width:100%; margin:16px auto; border-radius:8px; }
+.qr { display:block; max-width:210px; width:100%; height:auto; margin:16px auto; border-radius:8px; }
 hr { border:0; border-top:1px solid var(--site-line); margin:28px 0; }
 .account-details { padding-top:14px; padding-bottom:14px; }.account-details > summary { font-size:14px; color:var(--text-dark); }
 .article-page { max-width:860px; }.article-page h2 { font-size:20px; margin:24px 0 12px; }.article-page p { line-height:1.9; font-size:14px; color:var(--text-gray); margin:12px 0; }.article-page .btn { margin-top:20px; }.article-page .site-heading { margin-bottom:30px; }
