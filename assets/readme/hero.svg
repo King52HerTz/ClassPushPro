@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-labelledby="title desc">
+  <title id="title">ClassPush — 教务系统可以慢，早八不能迟到。</title>
+  <desc id="desc">为湖南工学院同学打造的课表、成绩与日历小工具。课表格子为功能示意，云端支持 07:00 当天课表和 20:00 次日课表。</desc>
+  <rect width="1200" height="400" rx="24" fill="#f5f8ff"/>
+  <g font-family="Segoe UI,Microsoft YaHei,PingFang SC,sans-serif">
+    <g id="project-title">
+      <text x="58" y="56" font-size="20" fill="#667085" letter-spacing="2">湖南工学院 · 学习空间</text>
+      <text x="58" y="177" font-size="42" font-weight="650" fill="#182230">查课表、记日历，</text>
+      <text x="58" y="236" font-size="42" font-weight="650" fill="#1677ff">提醒交给云端。</text>
+      <text x="58" y="318" font-size="24" fill="#667085">教务可以慢，早八不能迟到。</text>
+    </g>
+    <g id="timetable-illustration" transform="translate(660 40)">
+      <rect width="482" height="320" rx="18" fill="#fff"/>
+      <text x="26" y="38" font-size="18" fill="#667085">课表格子示意</text>
+      <path d="M26 60H456 M26 124H456 M26 188H456 M26 252H456 M162 60V252 M310 60V252" stroke="#e7edf6" fill="none"/>
+      <rect x="30" y="70" width="124" height="44" rx="9" fill="#e8f2ff"/>
+      <rect x="170" y="134" width="132" height="44" rx="9" fill="#fff0f0"/>
+      <rect x="318" y="70" width="132" height="44" rx="9" fill="#e8f2ff"/>
+      <rect x="30" y="198" width="124" height="44" rx="9" fill="#fff0f0"/>
+      <rect x="318" y="198" width="132" height="44" rx="9" fill="#e8f2ff"/>
+      <path d="M42 84V100 M330 84V100 M330 212V228" stroke="#1677ff" stroke-width="4" stroke-linecap="round"/>
+      <path d="M182 148V164 M42 212V228" stroke="#ff7875" stroke-width="4" stroke-linecap="round"/>
+      <text x="60" y="100" font-size="22" fill="#182230">1–2 节</text>
+      <text x="200" y="164" font-size="22" fill="#182230">3–4 节</text>
+      <text x="348" y="100" font-size="22" fill="#182230">1–2 节</text>
+      <text x="60" y="228" font-size="22" fill="#182230">5–6 节</text>
+      <text x="348" y="228" font-size="22" fill="#182230">5–6 节</text>
+      <text x="26" y="293" font-size="24" font-weight="650" fill="#1677ff">07:00 <tspan font-size="20" font-weight="400" fill="#667085">看今天</tspan></text>
+      <text x="256" y="293" font-size="24" font-weight="650" fill="#1677ff">20:00 <tspan font-size="20" font-weight="400" fill="#667085">看明天</tspan></text>
+    </g>
+  </g>
+</svg>
